@@ -14,6 +14,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useRouter } from "next/navigation";
 import { IstanbulDial } from "@/components/IstanbulDial"; 
 import { ObeliskGuardian } from "@/components/IstanbulProtocol/ObeliskGuardian";
+import IstanbulRitual from "@/components/IstanbulProtocol/IstanbulRitual";
 
 export default function ScribeDossierPage() {
   const { user } = useAuth();
@@ -105,20 +106,7 @@ const [ritualState, setRitualState] = useState('dossier');
         />
 
         {/* COURT III: RITUAL MASTERY */}
-        <div className="grid grid-cols-2 gap-4 w-full">
-          <div className="p-5 border border-cyan-900/30 bg-black/40 rounded-2xl flex flex-col items-center gap-3 text-center">
-            <Trophy className="text-pink-600 w-6 h-6" />
-            <h3 className="text-[10px] font-headline tracking-widest uppercase text-cyan-200">Rituals</h3>
-            <p className="text-[9px] text-slate-600 font-mono uppercase">0 Cycles</p>
-          </div>
-
-          <div className="p-5 border border-cyan-900/30 bg-black/40 rounded-2xl flex flex-col items-center gap-3 text-center">
-            <Scroll className="text-cyan-600 w-6 h-6" />
-            <h3 className="text-[10px] font-headline tracking-widest uppercase text-cyan-200">Initiated</h3>
-            <p className="text-[9px] text-slate-600 font-mono uppercase">2026.01.02</p>
-          </div>
-        </div>
-        {/* 🌌 FULL SCREEN RITUAL OVERLAY */}
+{/* 🌌 FULL SCREEN RITUAL OVERLAY */}
 <AnimatePresence>
   {ritualState === 'ritual' && (
     <motion.div 
@@ -127,7 +115,6 @@ const [ritualState, setRitualState] = useState('dossier');
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
     >
-      {/* The Close Button to get back to the Dossier if needed */}
       <button 
         onClick={() => setRitualState('dossier')}
         className="absolute top-10 right-10 text-cyan-500/50 hover:text-cyan-400 z-[110]"
@@ -135,26 +122,10 @@ const [ritualState, setRitualState] = useState('dossier');
         <X size={32} />
       </button>
 
-      <ObeliskGuardian onRitualComplete={() => setRitualState('keypad')} />
-    </motion.div>
-  )}
-
-  {/* PHASE 3: THE KEYPAD COURT (Final Destination) */}
-  {ritualState === 'keypad' && (
-    <motion.div 
-      initial={{ opacity: 0, scale: 1.1 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6"
-    >
-      <div className="w-full max-w-md">
-        <IstanbulDial />
-        <button 
-          onClick={() => setRitualState('dossier')}
-          className="mt-12 w-full text-cyan-500/30 hover:text-cyan-400 font-mono text-[9px] tracking-[0.5em] uppercase"
-        >
-          Close Archive
-        </button>
-      </div>
+      {/* This component now holds EVERYTHING: 
+         The Obelisk, the Knocks, the Zoom, and the Keypad 
+      */}
+      <IstanbulRitual />
     </motion.div>
   )}
 </AnimatePresence>

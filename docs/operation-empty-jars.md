@@ -17,7 +17,7 @@ Focus: Establishing the mathematical laws of the Inner Sanctum.
 🏮 Phase 2: The Istanbul Protocol (The Security Interface)
 Focus: Building the Obelisk and the user ritual.
 
-[ ] 2.1 The Istanbul Dial: (SVG Tracing of the Theodosius Obelisk and glyphs in inkscape)
+[X] 2.1 The Istanbul Dial: (SVG Tracing of the Theodosius Obelisk and glyphs in inkscape)
     Status: Underway - approximately 50% complete as of 1/17/5526
     
 [ ] 2.1.2 Visual Feedback: The "Centrifugal Vortex" animation. Glyphs fall from the shaft, orbit the pedestal, and snap into the 3x4 grid.
