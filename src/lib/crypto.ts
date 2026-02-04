@@ -117,7 +117,7 @@ export async function wrapMasterKey(
   wrappingKey: CryptoKey
 ): Promise<ArrayBuffer> {
   return await window.crypto.subtle.wrapKey(
-    "jwk", // We wrap the JSON format of the key
+    "raw", // Changed from "jwk" to "raw"
     masterKey,
     wrappingKey,
     "AES-KW"
@@ -130,11 +130,11 @@ export async function unwrapMasterKey(
   wrappingKey: CryptoKey
 ): Promise<CryptoKey> {
   return await window.crypto.subtle.unwrapKey(
-    "jwk",
+    "raw", // Changed from "jwk" to "raw"
     wrappedKey,
     wrappingKey,
     "AES-KW",
-    { name: "AES-GCM" },
+    { name: "AES-GCM" }, // This tells the browser the raw bytes are an AES-GCM key
     true,
     ["encrypt", "decrypt"]
   );

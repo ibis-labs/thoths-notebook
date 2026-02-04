@@ -53,46 +53,36 @@ export default function IstanbulRitual({ onRitualComplete }: { onRitualComplete?
     const [isSettingPin, setIsSettingPin] = useState(true);
     const [tempPin, setTempPin] = useState<string | null>(null); // For the 'Re-enter' step
 
-    const handleKeyTap = (num: number) => {
-    if (!isMigrating || isStashOpen) return;
+   const [isError, setIsError] = useState(false);
+
+const handleKeyTap = (num: number) => {
+    if (!isMigrating || isStashOpen || isError) return; // Prevent input during error flash
 
     const newCode = [...inputCode, num].slice(-4);
     setInputCode(newCode);
 
     if (newCode.length === 4) {
-        const attemptedPinRaw = newCode.join(''); // "7890", "1122", etc.
-        
-        // Create the "Fingerprint" of that PIN
+        const attemptedPinRaw = newCode.join('');
         const attemptedHash = CryptoJS.SHA256(attemptedPinRaw).toString();
 
         if (isSettingPin) {
-            if (!tempPin) {
-                // PHASE 1: Store the hash of the first attempt
-                setTempPin(attemptedHash); 
-                setInputCode([]);
-            } else {
-                // PHASE 2: Compare the hash of the second attempt
-                if (attemptedHash === tempPin) {
-                    setSavedPin(attemptedHash); // This is what goes to Firestore
-                    setIsSettingPin(false);
-                    setTempPin(null);
-                    setInputCode([]);
-                    
-                    // Anchor it to the Cloud
-                    savePinToFirestore(attemptedHash);
-                } else {
-                    // Mismatch - reset the ritual
-                    setTempPin(null);
-                    setInputCode([]);
-                }
-            }
+            // ... (keep your existing PIN setting logic)
         } else {
-            // PHASE 3: UNLOCK. Compare current input's hash to the stored hash.
+            // THE UNLOCK CHECK
             if (attemptedHash === savedPin) {
                 setIsStashOpen(true);
             } else {
-                setInputCode([]); 
-                console.log("Kryptos Mismatch.");
+                // THE REJECTION
+                setIsError(true);
+                setInputCode([]);
+                
+                // Trigger Haptic Feedback (if on mobile)
+                if (window.navigator.vibrate) {
+                    window.navigator.vibrate([100, 50, 100]);
+                }
+
+                // Reset error state after the animation finishes
+                setTimeout(() => setIsError(false), 600);
             }
         }
     }
@@ -258,6 +248,7 @@ const handleRename = (id: string, newLabel: string) => {
             <div className="w-full h-full max-w-[500px] aspect-[1/2] flex items-center justify-center relative">
 
                 <motion.svg
+                
                     animate={{
                         viewBox: isMigrating ? views.panelZoom :
                             (knockCount === 3 ? views.totality :
@@ -295,9 +286,40 @@ const handleRename = (id: string, newLabel: string) => {
                             className="drop-shadow-[0_0_5px_#00ff41]"
                         />
 
-                        <g transform="translate(22.1, 254)">
-                            <Keypad isVisible={isMigrating} onKeyClick={handleKeyTap} />
-                        </g>
+                  <g transform="translate(22.1, 254)">
+    <motion.g
+        animate={isError ? {
+            x: [0, -0.4, 0.4, -0.4, 0.4, 0], // The "Rejection Shake"
+            filter: [
+                "drop-shadow(0 0 0px #ff0000)",
+                "drop-shadow(0 0 5px #ff0000)",
+                "drop-shadow(0 0 0px #ff0000)"
+            ]
+        } : {
+            filter: "drop-shadow(0 0 0px #ff0000)"
+        }}
+        transition={{ duration: 0.4 }}
+    >
+        <Keypad 
+            isVisible={isMigrating} 
+            onKeyClick={handleKeyTap} 
+        />
+        
+        {/* Visual Flash: A simple red rectangle that fades in/out */}
+        <AnimatePresence>
+            {isError && (
+                <motion.rect
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.3 }}
+                    exit={{ opacity: 0 }}
+                    x="0" y="0" width="10" height="15" // Matches Pedestal/Keypad dimensions
+                    fill="#ff0000"
+                    className="pointer-events-none"
+                />
+            )}
+        </AnimatePresence>
+    </motion.g>
+</g>
                     </g>
 
                     {/* 3. THE HERO MIGRATION    */}

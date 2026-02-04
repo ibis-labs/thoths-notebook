@@ -1,28 +1,24 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { 
-  User, 
-  onAuthStateChanged, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut as firebaseSignOut 
-} from "firebase/auth";
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-// 1. The Interface (The Menu)
+// 🏛️ The Interface (Added masterKey and setter)
 interface AuthContextType {
   user: User | null;
-  loading: boolean; // ✅ We stick with 'loading' here
+  loading: boolean;
+  masterKey: CryptoKey | null; // 🔑 The Golden Key living in RAM
+  setMasterKey: (key: CryptoKey | null) => void; 
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-// 2. The Default Context (The Appetizer)
-// ✅ FIX: Changed isLoading to loading here to match the interface
 const AuthContext = createContext<AuthContextType>({ 
   user: null, 
   loading: true, 
+  masterKey: null,
+  setMasterKey: () => {},
   signInWithGoogle: async () => {},
   signOut: async () => {}
 });
@@ -31,8 +27,11 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  // ✅ FIX: Changed state name from isLoading to loading
   const [loading, setLoading] = useState(true);
+  
+  // 🏺 The Golden Thread: This key only exists in RAM. 
+  // Refreshing the page will clear it (which is good for security).
+  const [masterKey, setMasterKey] = useState<CryptoKey | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -54,16 +53,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      setMasterKey(null); // 🚿 Banish the key from RAM on logout
       await firebaseSignOut(auth);
     } catch (error) {
       console.error("Error signing out", error);
     }
   };
 
-  // ✅ FIX: The value object now perfectly matches the interface
   const value = {
     user,
     loading,
+    masterKey,
+    setMasterKey,
     signInWithGoogle,
     signOut
   };

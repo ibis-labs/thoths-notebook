@@ -33,7 +33,7 @@ Focus: Moving existing data and finalizing the recovery rituals.
 
 [ ] 3.0 The 12-Word Mnemonic: BIP-39 implementation.
 
-[ ] 3.1 The "Stash" Vault: UI for the "Oblique Hint" system.
+[X] 3.1 The "Stash" Vault: UI for the "Oblique Hint" system.
 
 
 
