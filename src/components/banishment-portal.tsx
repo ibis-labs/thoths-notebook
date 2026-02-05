@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { DuamatefHead } from "@/components/icons/duamatef-head";
+import { DuamatefHead } from "@/components/icons/DuamatefHead";
 
 interface BanishmentPortalProps {
   children: React.ReactNode; // The button/icon that triggers the dialog

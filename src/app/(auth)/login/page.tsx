@@ -7,12 +7,13 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { generateMasterKey, deriveWrappingKey, wrapMasterKey, saveWrappedKeyLocally } from '@/lib/crypto';
+import { generateMasterKey, deriveWrappingKey, wrapMasterKey, saveWrappedKeyLocally, unwrapKeyFromPhrase, base64ToBuffer } from '@/lib/crypto';
 import { bufferToBase64, encryptData, decryptData } from '@/lib/crypto';
 import * as bip39 from 'bip39';
 import { useAuth } from '@/components/auth-provider'; // Import our custom auth hook
+import { DuamatefHead } from '@/components/icons/DuamatefHead';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,22 +31,29 @@ export default function LoginPage() {
   const [demoDecrypted, setDemoDecrypted] = useState('');
   const [showProof, setShowProof] = useState(false);
   const router = useRouter();
+  const [isSigningUp, setIsSigningUp] = useState(false);
   const { user } = useAuth(); // Get the current user from our context
 
   // NEW: This useEffect hook will handle redirecting the user if they are already logged in.
   // This makes our navigation logic robust and centralized.
-  useEffect(() => {
-    // If there's no user, stay here.
-    if (!user) return;
+useEffect(() => {
+  if (!user) return;
 
-    // If we have a user, only proceed if:
-    // 1. It's a standard login (not initiating anything)
-    // 2. OR the ritual is officially marked as complete.
-    if (ritualComplete || (!isLoading && !displayName)) {
-      router.push('/');
-    }
-  }, [user, ritualComplete, isLoading, displayName, router]);
+  // 🏛️ THE SUPREME RULE: 
+  // If we are in the middle of a signup ritual, the Gatekeeper stays silent.
+  if (isSigningUp) return;
 
+  // 1. If the Ritual is finished, send them to Istanbul
+  if (ritualComplete) {
+    router.push('/IstanbulProtocol');
+    return;
+  }
+
+  // 2. Standard login logic for returning scribes
+  if (!isLoading && !displayName) {
+    router.push('/');
+  }
+}, [user, ritualComplete, isLoading, displayName, router, isSigningUp]);
   useEffect(() => {
     const encryptDemo = async () => {
       if (demoText && masterKey) {
@@ -60,6 +68,7 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSigningUp(true);
     setIsLoading(true);
     setError(null);
 
@@ -102,6 +111,7 @@ setWords(mnemonic.split(' '));
 
     } catch (err: any) {
       setError(err.message);
+      setIsSigningUp(false);
     } finally {
       setIsLoading(false);
     }
@@ -112,12 +122,39 @@ setWords(mnemonic.split(' '));
     setError(null);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const signedInUser = userCredential.user;
 
-      // We no longer redirect here. The useEffect hook will handle it.
+      // 🔑 RETRIEVE & UNWRAP: Get the wrapped key directly from Firestore using the signed-in user
+      const userDoc = await getDoc(doc(db, "users", signedInUser.uid));
+      if (!userDoc.exists()) {
+        setError("User profile not found. Please sign up first.");
+        return;
+      }
+
+      const userData = userDoc.data();
+      const wrappedMasterKey = userData.wrappedMasterKey;
+      const salt = userData.kryptosSalt;
+
+      if (!wrappedMasterKey || !salt) {
+        setError("Your encryption keys are corrupted. Please contact support.");
+        return;
+      }
+
+      // Unwrap the master key using the password
+      const unlockedKey = await unwrapKeyFromPhrase(
+        password,
+        base64ToBuffer(wrappedMasterKey),
+        base64ToBuffer(salt)
+      );
+
+      // Set the master key in the auth context
+      setMasterKey(unlockedKey);
+      console.log("✅ Sign-in: Master key successfully unwrapped and loaded.");
 
     } catch (err: any) {
-      setError(err.message);
+      console.error("❌ Sign-in error:", err);
+      setError(err.message || "Sign-in failed.");
     } finally {
       setIsLoading(false);
     }
@@ -235,7 +272,7 @@ setWords(mnemonic.split(' '));
       <div className="space-y-6 animate-in fade-in duration-700">
         <div className="p-4 bg-red-900/20 border border-red-900/40 rounded-lg text-center">
           <p className="text-xs text-gray-300">
-            A Key was created for you and you alone. <span className="text-white font-bold underline">YOU are responsible for this key!</span> Thoth's Notebook cannot recreate it.
+            A Key was created for you and you alone. <span className="text-white font-bold underline">YOU are responsible for this key!</span> Thoth's Notebook cannot recreate it. You will now be taken to a screen with 12 words - you MUST write these down on a piece of paper. It will be the ONLY way to recover your data if you forget your password.
           </p>
         </div>
         <button
@@ -288,10 +325,10 @@ setWords(mnemonic.split(' '));
     <div className="space-y-6">
       <div className="flex items-center gap-4 p-4 bg-red-950/20 border border-red-500/30 rounded-2xl">
         <div className="shrink-0">
-           {/* DuamatefHead icon */}
+           <DuamatefHead className="w-12 h-12 text-red-500 brightness-125" />
         </div>
         <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest leading-tight">
-          Ma'at requires your witness. Do not screenshot. Carve them into stone or paper.
+          Ma'at requires your witness. Do not screenshot - unless you want to. That's fine. Carve them into stone or paper. After you press the button, you will be taken to the Crypto-Obelisk of Istanbul. Set a PIN there and use the Stash at the top of the vault to give yourself a hint as to the where abouts of your 12 sacred words, such as "In the Family Bible at Micah 6:8"
         </p>
       </div>
 

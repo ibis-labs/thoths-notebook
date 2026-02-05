@@ -9,9 +9,6 @@ import { format } from "date-fns";
 
 // --- NEW IMPORTS FOR THE FIRST BREATH ---
 import { useAuth } from "@/components/auth-provider";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { INITIAL_STREAK_DATA } from "@/lib/types";
 // ----------------------------------------
 // --- NEW IMPORT FOR TASK CATEGORY LABELS
 import { CATEGORY_LABELS } from "@/lib/types";
@@ -130,49 +127,18 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
     }
 
     try {
-      // 1. STRICT DEFINITION: Only 'Daily Rituals' trigger the Template logic
-      const isRitualType = values.category === CATEGORY_LABELS.RITUAL;
-
-      // 2. PREPARE THE DATA: 
-      // Sacred Duties will have isRitual: false here
+      // 🛡️ ALL CATEGORIES NOW USE THE ENCRYPTED PATH
+      // The hook's addTask function handles encryption AND Daily Rituals logic
       const newTaskData = {
         ...values,
         subtasks,
         userId: user.uid,
-        isRitual: isRitualType,
-        streakData: isRitualType ? INITIAL_STREAK_DATA : null, 
       };
 
-      if (isRitualType) {
-        // --- BRANCH 1: ONLY FOR DAILY RITUALS ---
-        // This creates the master template in the dailyRituals collection
-        const templateRef = await addDoc(collection(db, "dailyRituals"), {
-          ...newTaskData,
-          createdAt: serverTimestamp(),
-        });
+      // Call the unified handler for ALL task types
+      onTaskAdd(newTaskData);
 
-        // This creates today's instance in the tasks collection
-        await addDoc(collection(db, "tasks"), {
-          ...newTaskData,
-          originRitualId: templateRef.id,
-          dueDate: new Date(),
-          completed: false,
-          createdAt: serverTimestamp(),
-        });
-
-        toast({ title: "The First Breath", description: "Ritual established." });
-      } else {
-        // --- BRANCH 2: EVERYTHING ELSE (Sacred Duties, Missions, Khet, etc.) ---
-        // We call the standard handler which writes ONLY to the 'tasks' collection
-        // We explicitly force isRitual to false just to be safe
-        onTaskAdd({ 
-          ...newTaskData, 
-          isRitual: false,
-          originRitualId: undefined
-        });
-
-        toast({ title: "Task Scribed", description: `"${values.title}" added.` });
-      }
+      toast({ title: "Task Scribed", description: `"${values.title}" added.` });
 
       form.reset();
       setSubtasks([]);

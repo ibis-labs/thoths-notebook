@@ -36,11 +36,12 @@ export async function importKeyFromJSON(jwk: JsonWebKey): Promise<CryptoKey> {
 // 📜 Ritual 4: The Core Seal (Encryption)
 export async function encryptData(
   key: CryptoKey, 
-  plainText: string
+  plainText: string,
+  ivToUse?: Uint8Array
 ): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array }> {
   const encoder = new TextEncoder();
   const data = encoder.encode(plainText);
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const iv = ivToUse || window.crypto.getRandomValues(new Uint8Array(12));
 
   // 📜 We define the algorithm parameters as a specific constant
   // This helps TypeScript understand the 'iv' is exactly what it wants.
@@ -171,4 +172,17 @@ export async function getWrappedKeyLocally(): Promise<ArrayBuffer | undefined> {
 // 📜 Ritual 13: Banish the Key (Security Wipe)
 export async function clearLocalKey(): Promise<void> {
   await del('thoth_wrapped_master_key');
+}
+// 📜 Ritual 14: The Great Unsealing (String/Buffer to Master Key)
+export async function unwrapKeyFromPhrase(
+  phrase: string,
+  wrappedMasterKeyBuffer: ArrayBuffer,
+  saltBuffer: ArrayBuffer
+): Promise<CryptoKey> {
+  // 1. Re-derive the Wrapping Key from the phrase using the stored salt
+  // Note: Ritual 6 expects Uint8Array, so we cast the saltBuffer
+  const wrappingKey = await deriveWrappingKey(phrase, new Uint8Array(saltBuffer));
+
+  // 2. Use that Wrapping Key to open the Sarcophagus
+  return await unwrapMasterKey(wrappedMasterKeyBuffer, wrappingKey);
 }

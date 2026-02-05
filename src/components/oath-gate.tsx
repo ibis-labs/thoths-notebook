@@ -28,26 +28,37 @@ export function OathGate() {
     return format(virtualTime, "yyyy-MM-dd");
   }
 
-  // 1. CHECK THE SCROLLS (Local Storage)
-  useEffect(() => {
-    if (!user) return; // Don't block if not logged in (or handle differently)
+useEffect(() => {
+    if (!user) return;
 
-    // We check if the user has already taken the oath TODAY
-    const lastOathString = localStorage.getItem(`thoth_oath_${user.uid}_date`);
-    const effectiveToday = getEffectiveDate();
+    const checkInitiationAndOath = async () => {
+      // 1. Fetch the user's scroll from Firestore
+      const { doc, getDoc } = await import("firebase/firestore");
+      const userRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userRef);
 
-    // TEST MODE: FORCE GATE OPEN
-    /*
-    setIsVisible(true);
-    */
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // 🏺 THE PROTECTIVE RULE:
+        // If they haven't finished the signup/obelisk ritual, 
+        // DO NOT show the Morning Gate.
+        if (userData.isInitiated === false) {
+          setIsVisible(false);
+          return;
+        }
+      }
 
-    //PRODUCTION MODE
+      // 2. If they ARE initiated, perform the standard Daily Check
+      const lastOathString = localStorage.getItem(`thoth_oath_${user.uid}_date`);
+      const effectiveToday = getEffectiveDate();
 
-    // If dates don't match, SHOW THE GATE
-    if (lastOathString !== effectiveToday) {
-      setIsVisible(true);
-    }
+      if (lastOathString !== effectiveToday) {
+        setIsVisible(true);
+      }
+    };
 
+    checkInitiationAndOath();
   }, [user]);
 
   // 2. THE RITUAL OF COMMITMENT

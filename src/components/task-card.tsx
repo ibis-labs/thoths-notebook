@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { type Task } from '@/lib/types';
 import { format } from 'date-fns';
 import { ExternalLink } from 'lucide-react';
@@ -16,8 +16,11 @@ import { motion } from 'framer-motion';
 import { CyberStylus } from '@/components/icons/cyber-stylus';
 import { CyberAnkh } from '@/components/icons/cyber-ankh';
 import { BanishmentPortal } from "@/components/banishment-portal";
-import { DuamatefHead } from '@/components/icons/duamatef-head';
+import { DuamatefHead } from '@/components/icons/DuamatefHead';
 import { DuamatefJar } from './icons/duamatef-jar';
+
+import { useAuth } from '@/components/auth-provider';
+import { decryptData, base64ToBuffer } from '@/lib/crypto';
 
 interface TaskCardProps {
     task: Task;
@@ -37,7 +40,8 @@ export function TaskCard({
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
-
+    const { masterKey } = useAuth();
+    const [decryptedTask, setDecryptedTask] = useState(task);
     // --- LOGIC ---
     const isPtah = (task as any).tags?.includes('Gift of Ptah');
     const isPink = task.id.charCodeAt(task.id.length - 1) % 2 !== 0;
@@ -82,35 +86,49 @@ export function TaskCard({
         setIsDialogOpen(false);
     };
 
-    const handleSubtaskToggle = async (index: number) => {
-        if (!task.subtasks) return;
+  const handleSubtaskToggle = async (index: number) => {
+    // 🏺 1. We MUST use the decrypted subtasks, as those are what the user sees
+    const currentSubtasks = decryptedTask.subtasks || [];
+    
+    // 🏺 2. Safety check: does the subtask exist at this index?
+    if (!currentSubtasks[index]) {
+        console.error("Subtask at index", index, "is non-existent in the archive.");
+        return;
+    }
 
-        const newSubtasks = [...task.subtasks];
-        newSubtasks[index] = {
-            ...newSubtasks[index],
-            completed: !newSubtasks[index].completed
-        };
-
-        // DEBUG LOG - Open your browser console (F12) to see this!
-        console.log("Subtask Toggle Triggered!");
-        console.log("Task ID:", task.id);
-        console.log("Is it a Clone?", !!(task as any).originRitualId);
-
-        try {
-            // We determine the collection based on the presence of the origin ID
-            const targetCollection = (task as any).originRitualId ? "tasks" : collectionName;
-
-            console.log("Targeting Collection:", targetCollection);
-
-            const taskRef = doc(db, targetCollection, task.id);
-            await updateDoc(taskRef, { subtasks: newSubtasks });
-
-            // We need to manually update the local state if the watcher isn't fast enough
-            // (Optional, but helps with UI snappiness)
-        } catch (error) {
-            console.error("Error toggling subtask:", error);
-        }
+    const newSubtasks = [...currentSubtasks];
+    newSubtasks[index] = {
+        ...newSubtasks[index],
+        completed: !newSubtasks[index].completed
     };
+
+    // Update local state immediately for snappy UI
+    setDecryptedTask(prev => ({ ...prev, subtasks: newSubtasks }));
+
+    try {
+        const targetCollection = (task as any).originRitualId ? "tasks" : collectionName;
+        const taskRef = doc(db, targetCollection, task.id);
+
+        if (task.isEncrypted && masterKey && task.iv) {
+            // 🏺 3. If encrypted, we must re-seal the whole array
+            const ivUint8 = new Uint8Array(base64ToBuffer(task.iv));
+            const encryptedSubtasks = await encryptData(
+                masterKey, 
+                JSON.stringify(newSubtasks), 
+                ivUint8
+            );
+            
+            await updateDoc(taskRef, { 
+                encryptedSubtasks: bufferToBase64(encryptedSubtasks.ciphertext) 
+            });
+        } else {
+            // Plaintext update
+            await updateDoc(taskRef, { subtasks: newSubtasks });
+        }
+    } catch (error) {
+        console.error("The Archive failed to record the subtask change:", error);
+    }
+};
 
     // --- STYLING ---
     const containerClasses = cn(
@@ -178,6 +196,79 @@ export function TaskCard({
         task.completed && isChronicle && "text-cyan-400 font-display tracking-[0.2em]"
     );
 
+useEffect(() => {
+        let isMounted = true;
+
+        async function revealSecrets() {
+            // 1. If not encrypted, sync state and stop
+            if (!task.isEncrypted) {
+                setDecryptedTask(task);
+                return;
+            }
+
+            // 2. Log the ingredients of the ritual for debugging
+            console.log("--- STARTING DECRYPTION ---");
+            console.log("Task ID:", task.id);
+            console.log("MasterKey in RAM:", !!masterKey);
+            console.log("IV from DB:", task.iv);
+
+            // 3. Perform the Unsealing if we have the key
+            if (task.isEncrypted && masterKey && task.iv) {
+                try {
+                    // Convert and wrap the IV
+                    const ivRawBuffer = base64ToBuffer(task.iv);
+                    const ivUint8 = new Uint8Array(ivRawBuffer);
+                    console.log("IV Buffer ByteLength:", ivRawBuffer.byteLength);
+
+                    // Decrypt the Title
+                    const decryptedTitle = await decryptData(
+                        masterKey,
+                        base64ToBuffer(task.title),
+                        ivUint8
+                    );
+                    console.log("Decrypted Title:", decryptedTitle);
+
+                    // Decrypt the Details
+                    const decryptedDetails = task.details
+                        ? await decryptData(masterKey, base64ToBuffer(task.details), ivUint8)
+                        : '';
+
+                    // Decrypt the Subtasks
+                    let finalSubtasks = task.subtasks || [];
+                    if (task.encryptedSubtasks) {
+                        const subData = await decryptData(
+                            masterKey,
+                            base64ToBuffer(task.encryptedSubtasks),
+                            ivUint8
+                        );
+                        finalSubtasks = JSON.parse(subData);
+                    }
+
+                    // Manifest to state
+                    if (isMounted) {
+                        setDecryptedTask({
+                            ...task,
+                            title: decryptedTitle,
+                            details: decryptedDetails,
+                            subtasks: finalSubtasks,
+                            isEncrypted: false,
+                            iv: null,
+                            encryptedSubtasks: null,
+                        });
+                        console.log("SUCCESS: Task revealed.");
+                    }
+                } catch (e) {
+                    console.error("DECRYPTION CRITICAL FAILURE:", e);
+                }
+            } else {
+                console.warn("DECRYPTION SKIPPED: Missing MasterKey or IV.");
+            }
+        }
+
+        revealSecrets();
+
+        return () => { isMounted = false; };
+    }, [task.title, task.isEncrypted, task.iv, masterKey]);
     return (
         <>
             <div ref={cardRef} className={containerClasses} onClick={handleDetailsClick}>
@@ -206,14 +297,15 @@ export function TaskCard({
 
                         <div className={cn("flex-1 space-y-1 w-full", task.completed && "flex flex-col items-center")}>
                             <h3 className={titleClasses}>
-                                {task.completed && task.title === "Oath of Commitment" ? (
+                                {/* 🛡️ REPLACEMENT 1: The Title */}
+                                {task.completed && decryptedTask.title === "Oath of Commitment" ? (
                                     <span className={cn("flex items-center justify-center gap-4", "pl-2")}>
                                         <CyberAnkh className="w-8 h-8 text-amber-900/80" />
-                                        <span>{task.title}</span>
+                                        <span>{decryptedTask.title}</span>
                                         <CyberAnkh className="w-8 h-8 text-amber-900/80" />
                                     </span>
                                 ) : (
-                                    task.title
+                                    decryptedTask.title
                                 )}
                             </h3>
 
@@ -276,12 +368,12 @@ export function TaskCard({
             {/* VIEW DETAILS DIALOG */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="max-h-[80vh] overflow-y-auto">
-                    <DialogTitle className="sr-only">Task Details: {task.title}</DialogTitle>
+                    <DialogTitle className="sr-only">Task Details: {decryptedTask.title}</DialogTitle>
 
                     <div className="grid gap-4 py-4">
                         <div className="flex items-center justify-between border-b border-cyan-900/50 pb-4">
                             <h2 className={cn("text-2xl font-headline tracking-wider", task.completed ? "text-amber-400" : "text-cyan-400")}>
-                                {task.title}
+                                {decryptedTask.title}
                             </h2>
                         </div>
 
@@ -289,8 +381,11 @@ export function TaskCard({
                             <div className="space-y-2">
                                 <h4 className="text-xs font-bold text-cyan-600 uppercase tracking-widest">Scribe Notes</h4>
                                 <div className="bg-slate-900/50 p-4 rounded-md border border-cyan-900/30 min-h-[80px]">
-                                    {task.details ? (
-                                        <p className="text-slate-300 font-mono text-sm whitespace-pre-wrap leading-relaxed">{task.details}</p>
+                                    {/* 🛡️ REPLACEMENT 3: The Details */}
+                                    {decryptedTask.details ? (
+                                        <p className="text-slate-300 font-mono text-sm whitespace-pre-wrap leading-relaxed">
+                                            {decryptedTask.details}
+                                        </p>
                                     ) : (
                                         <p className="text-slate-600 italic text-sm">No additional details scribed.</p>
                                     )}
@@ -298,11 +393,12 @@ export function TaskCard({
                             </div>
 
                             {/* INTERACTIVE SUBTASKS SECTION */}
-                            {task.subtasks && task.subtasks.length > 0 && (
+                            {/* 🛡️ REPLACEMENT 4: Interactive Subtasks */}
+                            {decryptedTask.subtasks && decryptedTask.subtasks.length > 0 && (
                                 <div className="space-y-2">
                                     <h4 className="text-xs font-bold text-cyan-600 uppercase tracking-widest">Ritual Steps</h4>
                                     <div className="space-y-2">
-                                        {task.subtasks.map((st, idx) => (
+                                        {decryptedTask.subtasks.map((st, idx) => (
                                             <div
                                                 key={idx}
                                                 className={cn(
@@ -337,91 +433,91 @@ export function TaskCard({
                                 </div>
                             )}
 
-                        
-{/* ACTION FOOTER - Unified Heights and Widths */}
-<div className="flex items-stretch justify-between pt-6 border-t border-cyan-900/30 mt-4 gap-2 w-full overflow-hidden">
 
-    {/* EDIT */}
-    <div
-        role="button"
-        onClick={handleEditClick}
-        className="cyber-input-white flex-1 h-20 flex flex-col items-center justify-center select-none cursor-pointer transition-all active:scale-90"
-    >
-        <CyberStylus className="w-12 h-12 mb-1 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
-        <span className="tracking-[0.15em] font-headline text-[9px] uppercase font-bold text-white/90">
-            Edit
-        </span>
-    </div>
+                            {/* ACTION FOOTER - Unified Heights and Widths */}
+                            <div className="flex items-stretch justify-between pt-6 border-t border-cyan-900/30 mt-4 gap-2 w-full overflow-hidden">
 
-  
-    {/* SANCTIFY - The Divine Pulse */}
-<div
-    role="button"
-    onClick={onToggle}
-    className={cn(
-        "flex-1 h-20 flex flex-col items-center justify-center rounded-md border-2 select-none cursor-pointer transition-all active:scale-95",
-        task.completed
-            ? "border-cyan-500/50 text-cyan-400 bg-cyan-950/20 shadow-[0_0_15px_rgba(34,211,238,0.2)]"
-            : "border-amber-500 text-amber-500 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
-    )}
->
-    {!task.completed ? (
-        <motion.div
-            animate={{
-                scale: [1, 1.05, 1], // Slightly subtler scale than the Gate for the smaller card
-                opacity: [0.6, 1, 0.6],
-                filter: [
-                    "drop-shadow(0 0 8px #fbbf24)", 
-                    "drop-shadow(0 0 20px #fbbf24)", 
-                    "drop-shadow(0 0 8px #fbbf24)"
-                ]
-            }}
-            transition={{ 
-                duration: 4, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-            }}
-            className="flex flex-col items-center"
-        >
-            <CyberAnkh className="w-11 h-11 mb-1" />
-        </motion.div>
-    ) : (
-        <CyberAnkh className="w-9 h-9 mb-1 opacity-50" />
-    )}
+                                {/* EDIT */}
+                                <div
+                                    role="button"
+                                    onClick={handleEditClick}
+                                    className="cyber-input-white flex-1 h-20 flex flex-col items-center justify-center select-none cursor-pointer transition-all active:scale-90"
+                                >
+                                    <CyberStylus className="w-12 h-12 mb-1 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+                                    <span className="tracking-[0.15em] font-headline text-[9px] uppercase font-bold text-white/90">
+                                        Edit
+                                    </span>
+                                </div>
 
-    <span className="tracking-[0.15em] font-headline text-[9px] uppercase font-bold">
-        {task.completed ? "Restore" : "Sanctify"}
-    </span>
-</div>
 
-    {/* BANISH */}
-    {!isSacred && (
-        <BanishmentPortal
-            onConfirm={() => onTaskDelete?.(task.id)}
-            ritualTitle={task.title}
-        >
-            <div
-                role="button"
-                className="flex-1 h-20 flex flex-col items-center justify-center rounded-md bg-black select-none cursor-pointer transition-all active:scale-75 border-2 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.3)]"
-            >
-                <DuamatefJar className="w-11 h-11 mb-0.5 text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]" />
-                <span className="tracking-[0.15em] font-headline text-[9px] uppercase font-bold text-red-500">
-                    Banish
-                </span>
-            </div>
-        </BanishmentPortal>
-    )}
-</div>
+                                {/* SANCTIFY - The Divine Pulse */}
+                                <div
+                                    role="button"
+                                    onClick={onToggle}
+                                    className={cn(
+                                        "flex-1 h-20 flex flex-col items-center justify-center rounded-md border-2 select-none cursor-pointer transition-all active:scale-95",
+                                        task.completed
+                                            ? "border-cyan-500/50 text-cyan-400 bg-cyan-950/20 shadow-[0_0_15px_rgba(34,211,238,0.2)]"
+                                            : "border-amber-500 text-amber-500 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                                    )}
+                                >
+                                    {!task.completed ? (
+                                        <motion.div
+                                            animate={{
+                                                scale: [1, 1.05, 1], // Slightly subtler scale than the Gate for the smaller card
+                                                opacity: [0.6, 1, 0.6],
+                                                filter: [
+                                                    "drop-shadow(0 0 8px #fbbf24)",
+                                                    "drop-shadow(0 0 20px #fbbf24)",
+                                                    "drop-shadow(0 0 8px #fbbf24)"
+                                                ]
+                                            }}
+                                            transition={{
+                                                duration: 4,
+                                                repeat: Infinity,
+                                                ease: "easeInOut"
+                                            }}
+                                            className="flex flex-col items-center"
+                                        >
+                                            <CyberAnkh className="w-11 h-11 mb-1" />
+                                        </motion.div>
+                                    ) : (
+                                        <CyberAnkh className="w-9 h-9 mb-1 opacity-50" />
+                                    )}
+
+                                    <span className="tracking-[0.15em] font-headline text-[9px] uppercase font-bold">
+                                        {task.completed ? "Restore" : "Sanctify"}
+                                    </span>
+                                </div>
+
+                                {/* BANISH */}
+                                {!isSacred && (
+                                    <BanishmentPortal
+                                        onConfirm={() => onTaskDelete?.(task.id)}
+                                        ritualTitle={task.title}
+                                    >
+                                        <div
+                                            role="button"
+                                            className="flex-1 h-20 flex flex-col items-center justify-center rounded-md bg-black select-none cursor-pointer transition-all active:scale-75 border-2 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.3)]"
+                                        >
+                                            <DuamatefJar className="w-11 h-11 mb-0.5 text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]" />
+                                            <span className="tracking-[0.15em] font-headline text-[9px] uppercase font-bold text-red-500">
+                                                Banish
+                                            </span>
+                                        </div>
+                                    </BanishmentPortal>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </DialogContent>
             </Dialog>
 
             <EditTaskDialog
-                task={task}
+                task={decryptedTask}
                 open={isEditOpen}
                 onOpenChange={setIsEditOpen}
-                collectionName={actualCollection} // Use the smart variable
+                collectionName={actualCollection}
             />
         </>
     );

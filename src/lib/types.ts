@@ -38,6 +38,12 @@ export type Task = {
   completed: boolean;
   details?: string; 
   subtasks?: Subtask[];
+  isEncrypted?: boolean;      
+  iv?: string;               
+  encryptedSubtasks?: string;
+  encryptedDetails?: string;
+  encryptedTitle?: string;
+  
   
   // --- RITUAL DNA ---
   isRitual?: boolean; 

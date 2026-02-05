@@ -36,6 +36,10 @@ export default function ObeliskAnimationsLab() {
     }
   };
 
+  const handleKeyClick = (num: number) => {
+    // Do nothing
+  };
+
   const getHeroColor = () => {
     if (knockCount === 0) return "#00FFFF";
     if (knockCount === 1) return "#6a0dad";
@@ -112,7 +116,7 @@ export default function ObeliskAnimationsLab() {
             />
 
             <g transform="translate(22.1, 254)">
-              <Keypad isVisible={isMigrating} />
+              <Keypad isVisible={isMigrating} onKeyClick={handleKeyClick} />
             </g>
           </g>
 

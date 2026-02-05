@@ -2,14 +2,16 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase"; // Ensure db is imported
+import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
+import { base64ToBuffer, bufferToBase64 } from "@/lib/crypto"; // Ensure unwrapKey is exported from crypto.ts
 
-// 🏛️ The Interface (Added masterKey and setter)
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  masterKey: CryptoKey | null; // 🔑 The Golden Key living in RAM
+  masterKey: CryptoKey | null;
   setMasterKey: (key: CryptoKey | null) => void; 
+  unlockArchives: (phrase: string) => Promise<boolean>; // 🏺 New Ritual
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -19,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true, 
   masterKey: null,
   setMasterKey: () => {},
+  unlockArchives: async () => false,
   signInWithGoogle: async () => {},
   signOut: async () => {}
 });
@@ -28,16 +31,98 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // 🏺 The Golden Thread: This key only exists in RAM. 
-  // Refreshing the page will clear it (which is good for security).
   const [masterKey, setMasterKey] = useState<CryptoKey | null>(null);
 
+  /**
+   * 🏺 RITUAL 1: The Session Bridge Handler
+   */
+  const handleSetMasterKey = async (key: CryptoKey | null) => {
+    console.log("🔑 Auth: handleSetMasterKey triggered. Key present?", !!key);
+    setMasterKey(key);
+    
+    if (key) {
+      try {
+        const exported = await window.crypto.subtle.exportKey("raw", key);
+        sessionStorage.setItem("thoth_session_key", bufferToBase64(exported));
+        console.log("✅ Auth: Key mirrored to Session Storage.");
+      } catch (e) {
+        console.error("❌ Auth: Failed to export key:", e);
+      }
+    } else {
+      sessionStorage.removeItem("thoth_session_key");
+    }
+  };
+
+  /**
+   * 🏺 RITUAL 2: The Retrieval Ritual
+   * Fetches the wrapped key from Firestore and attempts to unwrap it with a phrase.
+   */
+const unlockArchives = async (phrase: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (!userDoc.exists()) return false;
+
+      const data = userDoc.data();
+      const wrappedMasterKey = data.wrappedMasterKey;
+      const salt = data.kryptosSalt;
+
+      if (!wrappedMasterKey || !salt) {
+        console.error("❌ Archives found, but they are not sealed correctly.");
+        return false;
+      }
+
+      // 🏺 THE UNSEALING
+      const { unwrapKeyFromPhrase } = await import('@/lib/crypto');
+      
+      const liveKey = await unwrapKeyFromPhrase(
+        phrase,
+        base64ToBuffer(wrappedMasterKey),
+        base64ToBuffer(salt)
+      );
+
+      // Save to RAM and Bridge
+      await handleSetMasterKey(liveKey);
+      return true;
+    } catch (e) {
+      console.error("❌ The phrase failed to move the stone. Likely incorrect phrase.", e);
+      return false;
+    }
+  };
+
+  /**
+   * 🏺 RITUAL 3: The Morning Gate (App Startup)
+   */
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("🔥 Firebase: Auth state changed. User:", firebaseUser?.email);
+      setUser(firebaseUser);
       setLoading(false);
     });
+
+    const restoreKeyFromBridge = async () => {
+      const savedKeyBase64 = sessionStorage.getItem("thoth_session_key");
+      if (savedKeyBase64) {
+        try {
+          console.log("🏺 Bridge: Found saved key. Attempting restoration...");
+          const rawKey = base64ToBuffer(savedKeyBase64);
+          const restoredKey = await window.crypto.subtle.importKey(
+            "raw",
+            rawKey,
+            "AES-GCM",
+            true,
+            ["encrypt", "decrypt"]
+          );
+          setMasterKey(restoredKey);
+          console.log("✨ Bridge: Master Key restored successfully.");
+        } catch (e) {
+          console.error("❌ Bridge: Restoration failed:", e);
+        }
+      }
+    };
+
+    restoreKeyFromBridge();
 
     return () => unsubscribe();
   }, []);
@@ -53,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      setMasterKey(null); // 🚿 Banish the key from RAM on logout
+      await handleSetMasterKey(null);
       await firebaseSignOut(auth);
     } catch (error) {
       console.error("Error signing out", error);
@@ -64,7 +149,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     loading,
     masterKey,
-    setMasterKey,
+    setMasterKey: handleSetMasterKey,
+    unlockArchives, // 🏺 Exported for use in the UI
     signInWithGoogle,
     signOut
   };

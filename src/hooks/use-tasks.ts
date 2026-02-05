@@ -18,9 +18,10 @@ import { useAuth } from "@/components/auth-provider";
 import { useToast } from "@/hooks/use-toast"; 
 import { Task } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
+import { encryptData, bufferToBase64 } from "@/lib/crypto";
 
 export function useTasks(filter?: string) {
-  const { user } = useAuth();
+  const { user, masterKey } = useAuth();
   const { toast } = useToast();
   
   const [tasks, setTasks] = useState<Task[]>([]); // Standard Tasks
@@ -85,51 +86,91 @@ export function useTasks(filter?: string) {
   }, [user]);
 
   // 3. SAFE ACTIONS
-const addTask = async (title: string, category: string, dueDate?: Date) => {
+const addTask = async (taskData: Omit<Task, 'id' | 'completed' | 'createdAt'>) => {
   if (!user) return;
+
+  const { title, category, dueDate, details, subtasks, ...rest } = taskData;
+
+  // 🛡️ THE SACRED SEALING
+  let finalTitle = title;
+  let finalDetails = details;
+  let encryptedSubtasks: string | null = null;
+  let ivString: string | null = null;
+  let isEncrypted = false;
   
-  // 1. STRICT CHECK: Only use the official Ritual label
+  // We clear subtasks from the top level; they will live in encryptedSubtasks
+  const finalSubtasks = subtasks || [];
+
+
+  if (masterKey) {
+    try {
+      // 1. Encrypt Title and get the IV
+      const { ciphertext: titleCipher, iv } = await encryptData(masterKey, title);
+      finalTitle = bufferToBase64(titleCipher);
+      ivString = bufferToBase64(iv.buffer as ArrayBuffer);
+      isEncrypted = true;
+
+      // 2. Encrypt Details if it exists, using the same IV
+      if (details) {
+        const { ciphertext: detailsCipher } = await encryptData(masterKey, details, iv);
+        finalDetails = bufferToBase64(detailsCipher);
+      }
+      
+      // 3. Encrypt Subtasks if they exist, using the same IV
+      if (subtasks && subtasks.length > 0) {
+        const subtasksString = JSON.stringify(subtasks);
+        const { ciphertext: subtasksCipher } = await encryptData(masterKey, subtasksString, iv);
+        encryptedSubtasks = bufferToBase64(subtasksCipher);
+      }
+
+    } catch (err)      {
+      console.error("The Scribe failed to seal the data:", err);
+      // Fallback to plaintext if encryption fails to prevent losing data
+    }
+  }
+
   const isDailyRitual = category === CATEGORY_LABELS.RITUAL;
+
+  const commonTaskData = {
+    ...rest,
+    iv: ivString,
+    isEncrypted,
+    userId: user.uid,
+    createdAt: serverTimestamp(),
+    // Base data
+    title: finalTitle,
+    details: finalDetails,
+    subtasks: (subtasks && subtasks.length > 0 && encryptedSubtasks) ? [] : subtasks, // Store empty array if encrypted
+    encryptedSubtasks: encryptedSubtasks,
+  };
 
   if (isDailyRitual) {
     // --- RITUAL LOGIC ---
     const ritualTemplate = {
-      title,
+      ...commonTaskData,
       category,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
-      importance: 'medium',
-      isRitual: true 
+      isRitual: true,
     };
-
     const templateRef = await addDoc(collection(db, "dailyRituals"), ritualTemplate);
 
     const firstInstance = {
-      title,
+      ...commonTaskData,
       category,
       completed: false,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
       dueDate: dueDate || new Date(),
-      importance: 'medium',
-      estimatedTime: 15,
-      isRitual: true, // THE DNA TAG
-      originRitualId: templateRef.id 
+      isRitual: true,
+      originRitualId: templateRef.id,
     };
-
     await addDoc(collection(db, "tasks"), firstInstance);
+
   } else {
-    // --- STANDARD TASK (Duty, Mission, Khet, Expedition) ---
+    // --- STANDARD TASK ---
     const newTask = {
-      title,
-      category, // This will correctly be "Sacred Duties"
+      ...commonTaskData,
+      category,
       completed: false,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
       dueDate: dueDate || null,
-      importance: 'medium',
-      estimatedTime: 15,
-      isRitual: false, // ENSURE THIS IS FALSE FOR DUTIES
+      isRitual: false,
       originRitualId: null
     };
 

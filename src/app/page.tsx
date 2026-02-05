@@ -65,7 +65,7 @@ export default function Home() {
              <AddTaskDialog 
                 onTaskAdd={(data) => {
                   // This calls the hook function directly
-                  addTask(data.title, data.category, data.dueDate);
+                  addTask(data);
                 }} 
              />
           </div>

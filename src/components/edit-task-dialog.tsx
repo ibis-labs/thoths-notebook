@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/components/auth-provider';
+import { encryptData, decryptData, bufferToBase64, base64ToBuffer } from '@/lib/crypto';
 import { BanishmentPortal } from './banishment-portal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Plus } from 'lucide-react';
-import { DuamatefHead } from '@/components/icons/duamatef-head';
+import { DuamatefHead } from '@/components/icons/DuamatefHead';
 import { DuamatefJar } from '@/components/icons/duamatef-jar';
 import { CyberJar } from '@/components/icons/cyber-jar';
 import { CyberStylus } from './icons/cyber-stylus';
@@ -20,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { CATEGORY_LABELS } from "@/lib/types"; // Summon the Sacred Labels
+
 const CYBER_BUTTON_STYLE = `
   font-headline font-bold uppercase tracking-widest 
   bg-black hover:bg-black 
@@ -40,35 +43,86 @@ interface EditTaskDialogProps {
 export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tasks" }: EditTaskDialogProps) {
   if (!task) return null;
 
+  const { masterKey } = useAuth();
+  const { toast } = useToast();
+
   const [title, setTitle] = useState(task.title);
   const [details, setDetails] = useState(task.details || '');
   const [estimatedTime, setEstimatedTime] = useState(task.estimatedTime?.toString() || '');
   const [importance, setImportance] = useState(task.importance);
   const [subtasks, setSubtasks] = useState<Subtask[]>(task.subtasks || []);
   const [newSubtaskText, setNewSubtaskText] = useState('');
-  const [showBanishConfirm, setShowBanishConfirm] = useState(false);
+  const [dueDate, setDueDate] = useState('');
 
-  // Safely handle the date conversion to avoid the toISOString crash
-  const [dueDate, setDueDate] = useState<string>(() => {
-    if (!task.dueDate) return '';
+  useEffect(() => {
+    if (open) {
+      const decryptAndSetState = async () => {
+        // Set state to raw values by default.
+        setTitle(task.title || '');
+        setDetails(task.details || '');
+        setSubtasks(task.subtasks || []);
+        setEstimatedTime(task.estimatedTime?.toString() || '');
+        setImportance(task.importance);
+        if (task.dueDate) {
+          try {
+            const dateObj = (task.dueDate as any).toDate ? (task.dueDate as any).toDate() : new Date(task.dueDate);
+            setDueDate(isNaN(dateObj.getTime()) ? '' : dateObj.toISOString().split('T')[0]);
+          } catch (e) { setDueDate(''); }
+        } else {
+          setDueDate('');
+        }
 
-    try {
-      // Convert Firestore Timestamp or String to a JS Date object
-      const dateObj = (task.dueDate as any).toDate
-        ? (task.dueDate as any).toDate()
-        : new Date(task.dueDate);
+        // If the task is marked as encrypted, attempt to decrypt each field individually.
+        if (task.isEncrypted && masterKey && task.iv) {
+          try {
+            const ivBuff = base64ToBuffer(task.iv);
+            const ivUint8 = new Uint8Array(ivBuff);
 
-      // Verify it's a valid date before calling toISOString
-      return isNaN(dateObj.getTime()) ? '' : dateObj.toISOString().split('T')[0];
-    } catch (e) {
-      return '';
+            // --- Decrypt Title ---
+            try {
+              setTitle(await decryptData(masterKey, base64ToBuffer(task.title), ivUint8));
+            } catch (e) {
+              console.warn(`Failed to decrypt title, assuming plaintext. Task ID: ${task.id}`, e);
+              setTitle(task.title); // Fallback to raw title
+            }
+
+            // --- Decrypt Details ---
+            if (task.details) {
+              try {
+                setDetails(await decryptData(masterKey, base64ToBuffer(task.details), ivUint8));
+              } catch (e) {
+                console.warn(`Failed to decrypt details, assuming plaintext. Task ID: ${task.id}`, e);
+                setDetails(task.details); // Fallback to raw details
+              }
+            }
+
+            // --- Decrypt Subtasks ---
+            if (task.encryptedSubtasks) {
+              try {
+                const subData = await decryptData(masterKey, base64ToBuffer(task.encryptedSubtasks), ivUint8);
+                setSubtasks(subData ? JSON.parse(subData) : []);
+              } catch (e) {
+                console.warn(`Failed to decrypt subtasks. Task ID: ${task.id}`, e);
+                setSubtasks(task.subtasks || []); // Fallback to raw subtasks
+              }
+            } else {
+              setSubtasks(task.subtasks || []);
+            }
+
+          } catch (e) {
+            // This outer catch is for critical failures like a bad IV.
+            console.error("DECRYPTION CRITICAL FAILURE (Edit Dialog): Bad IV or master key.", e);
+            toast({ title: "Decryption Failed", description: "The master key or task data is corrupt.", variant: "destructive" });
+          }
+        }
+      };
+
+      decryptAndSetState();
     }
-  });
-  // Logic to hide the Banish button for instances in the task list
+  }, [task, masterKey, open, toast]);
+
   const isSacredInstance = collectionName === "tasks" && (task.isRitual || !!(task as any).originRitualId) ||
     task.category === CATEGORY_LABELS.RITUAL;
-
-  const { toast } = useToast();
 
   const handleAddSubtask = () => {
     if (!newSubtaskText.trim()) return;
@@ -83,37 +137,50 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
   };
 
   const canEditDate = collectionName === "tasks" && !isSacredInstance;
+
   const handleSave = async () => {
     try {
       const taskRef = doc(db, collectionName, task.id);
-
-      // We build the update payload here
-      await updateDoc(taskRef, {
-        title,
-        details,
-        estimatedTime: parseInt(estimatedTime) || 0,
+      let payload: any = {
         importance,
-        subtasks,
+        estimatedTime: parseInt(estimatedTime) || 0,
+        ...(canEditDate && { dueDate: dueDate ? new Date(dueDate) : null })
+      };
 
-        // --- STEP 3: THE PERSISTENCE PERSUASION ---
-        // This only adds 'dueDate' to the update if canEditDate is true
-        ...(canEditDate && {
-          dueDate: dueDate ? new Date(dueDate) : null
-        })
-      });
+      if (masterKey) {
+        const { ciphertext: titleCipher, iv } = await encryptData(masterKey, title);
+        const ivString = bufferToBase64(iv.buffer);
 
-      toast({
-        title: "Archives Updated",
-        description: "The timeline has been adjusted in the scrolls.",
-      });
+        let finalDetails = details ? bufferToBase64((await encryptData(masterKey, details, iv)).ciphertext) : null;
+        let finalEncryptedSubtasks = (subtasks && subtasks.length > 0) ? bufferToBase64((await encryptData(masterKey, JSON.stringify(subtasks), iv)).ciphertext) : null;
+
+        payload = {
+          ...payload,
+          title: bufferToBase64(titleCipher),
+          details: finalDetails,
+          encryptedSubtasks: finalEncryptedSubtasks,
+          subtasks: [],
+          iv: ivString,
+          isEncrypted: true
+        };
+      } else {
+        payload = {
+          ...payload,
+          title,
+          details,
+          subtasks,
+          isEncrypted: false,
+          encryptedSubtasks: null,
+          iv: null
+        };
+      }
+
+      await updateDoc(taskRef, payload);
+      toast({ title: "Archives Updated", description: "The scrolls have been sealed and stored." });
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating archive:", error);
-      toast({
-        title: "Error",
-        description: "The scribe failed to record the changes.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "The scribe failed to record the changes.", variant: "destructive" });
     }
   };
 
@@ -121,10 +188,8 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
     try {
       const taskRef = doc(db, collectionName, task.id);
       await deleteDoc(taskRef);
-
       toast({ title: "Ritual Banished", description: "Removed from the scrolls." });
       onOpenChange(false);
-      setShowBanishConfirm(false);
     } catch (error) {
       console.error("Error deleting ritual:", error);
       toast({ title: "Error", description: "Could not delete.", variant: "destructive" });
@@ -243,28 +308,43 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
               {subtasks.map((subtask, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-3 bg-altar/30 p-2 pl-4 rounded border border-border/30 group transition-all hover:bg-altar/50"
+                  className={cn(
+                    "relative flex items-center gap-3 p-3 rounded border transition-all duration-500 overflow-hidden",
+                    subtask.completed
+                      ? "bg-gradient-to-r from-amber-900/20 via-amber-500/10 to-amber-900/20 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                      : "bg-slate-900/50 border-cyan-900/30 hover:border-cyan-500/50"
+                  )}
+                  onClick={() => handleToggleSubtask(index)}
                 >
-                  <span className="flex-1 text-sm font-body text-slate-300 truncate">
+                  {/* 🏺 THE GOLDEN THREAD: The top-border glow for completed steps */}
+                  {subtask.completed && (
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+                  )}
+
+                
+                  <span
+                    className={cn(
+                      "flex-1 text-sm font-body transition-all duration-500 select-none",
+                      subtask.completed
+                        ? "text-amber-200 font-bold tracking-wide drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                        : "text-slate-300"
+                    )}
+                  >
                     {subtask.text}
                   </span>
 
-                  {/* THE UNBOUND SENTINEL: Larger icon, zero-padding hit area */}
                   <div
                     role="button"
-                    onClick={() => handleDeleteSubtask(index)}
-                    /* Removing 'group' and 'hover' - adding 'active' for tactile feedback */
-                    className="w-12 h-12 flex items-center justify-center cursor-pointer transition-all active:scale-75 active:opacity-100 shrink-0 select-none"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent toggling when trying to banish
+                      handleDeleteSubtask(index);
+                    }}
+                    className="w-10 h-10 flex items-center justify-center cursor-pointer transition-all active:scale-75 shrink-0"
                   >
-                    <DuamatefHead
-                      className={cn(
-                        "w-10 h-10 transition-all duration-200",
-                        /* Base state: Subtle and respectful of the Void */
-                        "text-red-600 active:drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]",
-                        /* Active state: The flare of banishment occurs only on touch */
-                        "active:text-red-600 active:drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]"
-                      )}
-                    />
+                    <DuamatefHead className={cn(
+                      "w-8 h-8 transition-colors",
+                      subtask.completed ? "text-amber-900/40 hover:text-red-600" : "text-red-600/50 hover:text-red-600"
+                    )} />
                   </div>
                 </div>
               ))}
@@ -272,56 +352,56 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
           </div>
         </div>
 
-<DialogFooter className="flex flex-col gap-4 w-full pt-6 mt-4 border-t border-cyan-900/30">
-  {/* ROW 1: ESCAPE & BANISH (Desktop: More compact) */}
-  <div className="flex flex-row gap-4 w-full items-stretch">
-  {/* ESCAPE: Now using the White/Lunar style */}
-  <div
-    role="button"
-    onClick={() => onOpenChange(false)}
-    className={cn(
-      "cyber-input-white flex items-center justify-center cursor-pointer",
-      "h-20 md:h-14", // Shorter on desktop
-      isSacredInstance ? "w-full" : "flex-1"
-    )}
-  >
-    <span className="font-headline font-bold uppercase tracking-[0.3em] text-sm md:text-xs">
-      ESCAPE
-    </span>
-  </div>
+        <DialogFooter className="flex flex-col gap-4 w-full pt-6 mt-4 border-t border-cyan-900/30">
+          {/* ROW 1: ESCAPE & BANISH (Desktop: More compact) */}
+          <div className="flex flex-row gap-4 w-full items-stretch">
+            {/* ESCAPE: Now using the White/Lunar style */}
+            <div
+              role="button"
+              onClick={() => onOpenChange(false)}
+              className={cn(
+                "cyber-input-white flex items-center justify-center cursor-pointer",
+                "h-20 md:h-14", // Shorter on desktop
+                isSacredInstance ? "w-full" : "flex-1"
+              )}
+            >
+              <span className="font-headline font-bold uppercase tracking-[0.3em] text-sm md:text-xs">
+                ESCAPE
+              </span>
+            </div>
 
-  {/* BANISH: Keeping the Red-Head Sentinel */}
-  {!isSacredInstance && (
-    <BanishmentPortal onConfirm={handleDeleteRitual} ritualTitle={title}>
-      <div
-        role="button"
-        className={cn(
-          "flex-1 rounded-md border-2 border-red-600 flex items-center justify-center bg-black cursor-pointer transition-all active:scale-95 active:bg-red-950/40",
-          "h-20 md:h-14" // Match the Escape button height
-        )}
-      >
-        <DuamatefJar className="w-14 h-14 md:w-8 md:h-8 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-      </div>
-    </BanishmentPortal>
-  )}
-</div>
+            {/* BANISH: Keeping the Red-Head Sentinel */}
+            {!isSacredInstance && (
+              <BanishmentPortal onConfirm={handleDeleteRitual} ritualTitle={title}>
+                <div
+                  role="button"
+                  className={cn(
+                    "flex-1 rounded-md border-2 border-red-600 flex items-center justify-center bg-black cursor-pointer transition-all active:scale-95 active:bg-red-950/40",
+                    "h-20 md:h-14" // Match the Escape button height
+                  )}
+                >
+                  <DuamatefJar className="w-14 h-14 md:w-8 md:h-8 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                </div>
+              </BanishmentPortal>
+            )}
+          </div>
 
-  {/* ROW 2: SAVE (Desktop: Less massive) */}
-  <div
-    role="button"
-    onClick={handleSave}
-    className={cn(
-      "w-full h-20 md:h-16 rounded-md flex items-center justify-center gap-6 cursor-pointer",
-      CYBER_BUTTON_STYLE,
-      "border-2 border-cyan-400 active:scale-95"
-    )}
-  >
-    <CyberStylus className="w-12 h-12 md:w-8 md:h-8 animate-pulse text-cyan-400" />
-    <span className="font-headline font-bold uppercase tracking-[0.4em] text-lg md:text-base text-cyan-400">
-      SAVE
-    </span>
-  </div>
-</DialogFooter>
+          {/* ROW 2: SAVE (Desktop: Less massive) */}
+          <div
+            role="button"
+            onClick={handleSave}
+            className={cn(
+              "w-full h-20 md:h-16 rounded-md flex items-center justify-center gap-6 cursor-pointer",
+              CYBER_BUTTON_STYLE,
+              "border-2 border-cyan-400 active:scale-95"
+            )}
+          >
+            <CyberStylus className="w-12 h-12 md:w-8 md:h-8 animate-pulse text-cyan-400" />
+            <span className="font-headline font-bold uppercase tracking-[0.4em] text-lg md:text-base text-cyan-400">
+              SAVE
+            </span>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
