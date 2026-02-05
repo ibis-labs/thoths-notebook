@@ -43,6 +43,9 @@ useEffect(() => {
   // If we are in the middle of a signup ritual, the Gatekeeper stays silent.
   if (isSigningUp) return;
 
+  // 🧪 DEMO PHASE: Don't navigate while showing the demo or mnemonic
+  if (showDemo || showMnemonic) return;
+
   // 1. If the Ritual is finished, send them to Istanbul
   if (ritualComplete) {
     router.push('/IstanbulProtocol');
@@ -53,7 +56,7 @@ useEffect(() => {
   if (!isLoading && !displayName) {
     router.push('/');
   }
-}, [user, ritualComplete, isLoading, displayName, router, isSigningUp]);
+}, [user, ritualComplete, isLoading, displayName, router, isSigningUp, showDemo, showMnemonic]);
   useEffect(() => {
     const encryptDemo = async () => {
       if (demoText && masterKey) {
@@ -107,6 +110,7 @@ setWords(mnemonic.split(' '));
 };
 
       // 🧪 PIVOT: Go to Demo first
+      setIsSigningUp(false); // Release the gate so we can proceed through the ritual
       setShowDemo(true);
 
     } catch (err: any) {
@@ -333,7 +337,10 @@ setWords(mnemonic.split(' '));
       </div>
 
       <button
-        onClick={() => setRitualComplete(true)}
+        onClick={() => {
+          setRitualComplete(true);
+          router.push('/IstanbulProtocol');
+        }}
         className="w-full py-5 bg-black text-amber-500 font-headline border-2 border-amber-500 hover:bg-amber-500/20 active:scale-[0.98] transition-all uppercase tracking-[0.4em] text-xs brightness-125 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
       >
         I have committed the words to the physical world
