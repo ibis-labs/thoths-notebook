@@ -96,6 +96,12 @@ useEffect(() => {
         wrappedMasterKey: bufferToBase64(wrappedKeyBuffer),
         isInitiated: false,
       });
+      // Also set the Auth user's displayName so onAuthStateChanged sees it immediately
+      try {
+        await updateProfile(user, { displayName: displayName });
+      } catch (e) {
+        console.warn("Could not update Auth profile displayName:", e);
+      }
 const mnemonic = bip39.generateMnemonic(); // Generates 12 standard words
 setWords(mnemonic.split(' '));
       const generateSacredMnemonic = (keyBuffer: ArrayBuffer) => {

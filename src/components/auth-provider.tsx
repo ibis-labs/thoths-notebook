@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase"; // Ensure db is imported
 import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
 import { base64ToBuffer, bufferToBase64 } from "@/lib/crypto"; // Ensure unwrapKey is exported from crypto.ts
@@ -98,6 +98,29 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log("🔥 Firebase: Auth state changed. User:", firebaseUser?.email);
       setUser(firebaseUser);
+
+      // If we have a firebase auth user, attempt to enrich/sync their profile from Firestore
+      if (firebaseUser) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            if (data?.displayName && (!firebaseUser.displayName || firebaseUser.displayName !== data.displayName)) {
+              try {
+                await updateProfile(firebaseUser, { displayName: data.displayName });
+                console.log("✅ Auth: displayName synced from Firestore to Auth user.");
+                // update local user reference after profile change
+                setUser({ ...firebaseUser, displayName: data.displayName } as User);
+              } catch (e) {
+                console.warn("⚠️ Auth: Failed to update profile displayName:", e);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("❌ Auth: Failed to fetch Firestore user profile:", e);
+        }
+      }
+
       setLoading(false);
     });
 
