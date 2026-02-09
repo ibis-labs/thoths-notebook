@@ -20,7 +20,7 @@ import { DuamatefHead } from '@/components/icons/DuamatefHead';
 import { DuamatefJar } from './icons/duamatef-jar';
 
 import { useAuth } from '@/components/auth-provider';
-import { decryptData, base64ToBuffer } from '@/lib/crypto';
+import { decryptData, encryptData, base64ToBuffer, bufferToBase64 } from '@/lib/crypto';
 
 interface TaskCardProps {
     task: Task;
@@ -252,8 +252,8 @@ useEffect(() => {
                             details: decryptedDetails,
                             subtasks: finalSubtasks,
                             isEncrypted: false,
-                            iv: null,
-                            encryptedSubtasks: null,
+                            iv: undefined,
+                            encryptedSubtasks: undefined,
                         });
                         console.log("SUCCESS: Task revealed.");
                     }

@@ -5,9 +5,38 @@ import { X, Share, PlusSquare, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePWA } from "@/hooks/use-PWA";
+import { useAuth } from "@/components/auth-provider";
 
+/**
+ * 🏛️ THE GATEKEEPER COMPONENT
+ * This component's only job is to decide IF the Herald should even exist.
+ * If a ritual is active, it returns null, effectively killing the hook's timers.
+ */
 export function PwaInstallPrompt() {
-  const { showPrompt, setShowPrompt, isIOS, installChip } = usePWA();
+  const { ritualInProgress, user, onboardingComplete } = useAuth();
+
+  console.log("🏛️ PWA Gatekeeper: ritualInProgress=", ritualInProgress, "user=", !!user, "onboardingComplete=", onboardingComplete);
+
+  // 🛡️ THE HARD GATE: If ritual is active, user is not logged in, or onboarding is incomplete,
+  // we silence the Herald. The user must have completed the Istanbul Protocol (set PIN + saved stash)
+  // before the PWA install prompt appears.
+  if (ritualInProgress || !user || !onboardingComplete) {
+    console.log("🛡️ PWA Gatekeeper: Gate closed. Returning null.");
+    return null;
+  }
+
+  console.log("✅ PWA Gatekeeper: Gate open! Rendering PwaPromptVessel.");
+  return <PwaPromptVessel />;
+}
+
+/**
+ * 🏺 THE PROMPT VESSEL
+ * This contains your full, original UI and logic. 
+ * It only mounts when the Gatekeeper above allows it.
+ */
+function PwaPromptVessel() {
+  // We pass 'false' because we know the ritual is over if this component is mounted
+  const { showPrompt, setShowPrompt, isIOS, installChip } = usePWA(false);
 
   return (
     <AnimatePresence>
@@ -20,7 +49,6 @@ export function PwaInstallPrompt() {
         >
           <div className="w-full max-w-2xl bg-black/95 border-t-4 border-x-4 border-cyan-500/40 rounded-t-[2.5rem] p-8 md:p-12 shadow-[0_-20px_50px_rgba(34,211,238,0.15)] backdrop-blur-2xl relative overflow-hidden">
             
-
             <div className="flex flex-col items-center gap-8">
               <div className="text-center space-y-2">
                 <h3 className="text-2xl md:text-4xl text-cyan-100 font-headline tracking-[0.2em] uppercase font-bold drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
@@ -30,8 +58,6 @@ export function PwaInstallPrompt() {
                   Universal System Integration Required
                 </p>
               </div>
-
-            
 
               {isIOS ? (
                 <div className="w-full max-w-md text-sm text-amber-400/90 font-mono bg-amber-950/20 p-6 rounded-2xl border border-amber-900/40 space-y-4">
@@ -45,33 +71,31 @@ export function PwaInstallPrompt() {
                   </div>
                 </div>
               ) : (
-               <Button 
-  onClick={installChip}
-  className="w-full max-w-md h-auto py-12 md:py-16 bg-black/80 border-2 border-cyan-500/30 text-cyan-400 
-             hover:bg-slate-950 hover:border-cyan-400 hover:text-cyan-200 transition-all duration-500 
-             flex flex-col items-center justify-center gap-6 rounded-3xl shadow-2xl group overflow-hidden"
->
-  {/* THE INTEGRATED CHIP */}
-  <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0 transition-transform duration-700 group-hover:scale-110">
-    <Image
-      src="/icons/thoth-icon.svg"
-      alt="Thoth Chip"
-      fill
-      className="object-contain drop-shadow-[0_0_20px_rgba(34,211,238,0.5)] animate-pulse"
-    />
-  </div>
+                <Button 
+                  onClick={installChip}
+                  className="w-full max-w-md h-auto py-12 md:py-16 bg-black/80 border-2 border-cyan-500/30 text-cyan-400 
+                             hover:bg-slate-950 hover:border-cyan-400 hover:text-cyan-200 transition-all duration-500 
+                             flex flex-col items-center justify-center gap-6 rounded-3xl shadow-2xl group overflow-hidden"
+                >
+                  <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0 transition-transform duration-700 group-hover:scale-110">
+                    <Image
+                      src="/icons/thoth-icon.svg"
+                      alt="Thoth Chip"
+                      fill
+                      className="object-contain drop-shadow-[0_0_20px_rgba(34,211,238,0.5)] animate-pulse"
+                    />
+                  </div>
 
-  {/* THE SECURED TEXT */}
-  <div className="flex flex-col items-center gap-3 px-4">
-    <span className="text-lg md:text-2xl tracking-[0.2em] font-headline uppercase whitespace-normal text-center leading-tight">
-      Initialize <br className="md:hidden" /> Installation
-    </span>
-    <div className="flex items-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-      <Download className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
-      <span className="text-[10px] font-mono tracking-widest uppercase">System Sync</span>
-    </div>
-  </div>
-</Button>
+                  <div className="flex flex-col items-center gap-3 px-4">
+                    <span className="text-lg md:text-2xl tracking-[0.2em] font-headline uppercase whitespace-normal text-center leading-tight">
+                      Initialize <br className="md:hidden" /> Installation
+                    </span>
+                    <div className="flex items-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                      <Download className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
+                      <span className="text-[10px] font-mono tracking-widest uppercase">System Sync</span>
+                    </div>
+                  </div>
+                </Button>
               )}
 
               <button

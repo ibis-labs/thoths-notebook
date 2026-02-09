@@ -10,7 +10,11 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   masterKey: CryptoKey | null;
-  setMasterKey: (key: CryptoKey | null) => void; 
+  ritualInProgress: boolean; 
+  onboardingComplete: boolean;
+  setRitualInProgress: (inProgress: boolean) => void;
+  setMasterKey: (key: CryptoKey | null) => void;
+  setOnboardingComplete: (complete: boolean) => void;
   unlockArchives: (phrase: string) => Promise<boolean>; // 🏺 New Ritual
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -20,7 +24,11 @@ const AuthContext = createContext<AuthContextType>({
   user: null, 
   loading: true, 
   masterKey: null,
+  ritualInProgress: false,
+  onboardingComplete: false,
+  setRitualInProgress: () => {},
   setMasterKey: () => {},
+  setOnboardingComplete: () => {},
   unlockArchives: async () => false,
   signInWithGoogle: async () => {},
   signOut: async () => {}
@@ -32,7 +40,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [masterKey, setMasterKey] = useState<CryptoKey | null>(null);
-
+  const [ritualInProgress, setRitualInProgress] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   /**
    * 🏺 RITUAL 1: The Session Bridge Handler
    */
@@ -115,6 +124,14 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
                 console.warn("⚠️ Auth: Failed to update profile displayName:", e);
               }
             }
+            // 🏺 Load onboarding completion status from Firestore
+            console.log("🔥 Auth: Firestore user data keys:", Object.keys(data));
+            if (data?.onboardingComplete) {
+              console.log("✅ Auth: Onboarding marked as complete in Firestore.");
+              setOnboardingComplete(true);
+            } else {
+              console.log("❌ Auth: Onboarding NOT marked as complete. onboardingComplete value:", data?.onboardingComplete);
+            }
           }
         } catch (e) {
           console.error("❌ Auth: Failed to fetch Firestore user profile:", e);
@@ -172,7 +189,11 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
     user,
     loading,
     masterKey,
+    ritualInProgress, // 🏺 The Signal
+    onboardingComplete, // 🏺 The Onboarding Flag
+    setRitualInProgress, // 🏺 The Command
     setMasterKey: handleSetMasterKey,
+    setOnboardingComplete, // 🏺 The Onboarding Command
     unlockArchives, // 🏺 Exported for use in the UI
     signInWithGoogle,
     signOut

@@ -47,7 +47,7 @@ export async function encryptData(
   // This helps TypeScript understand the 'iv' is exactly what it wants.
   const algorithm: AesGcmParams = {
     name: "AES-GCM",
-    iv: iv
+    iv: iv as BufferSource
   };
 
   const ciphertext = await window.crypto.subtle.encrypt(

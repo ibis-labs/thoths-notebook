@@ -97,7 +97,7 @@ export function EditRitualTemplateDialog({ task, open, onOpenChange }: EditRitua
             if (masterKey) {
                 // Create a fresh IV for the update
                 const { ciphertext: titleCipher, iv } = await encryptData(masterKey, title);
-                const ivString = bufferToBase64(iv.buffer);
+                const ivString = bufferToBase64(iv.buffer as ArrayBuffer);
 
                 // Encrypt Details
                 let finalDetails = details 

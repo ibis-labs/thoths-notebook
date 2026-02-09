@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 
-export function usePWA() {
+export function usePWA(isRitualActive: boolean = false) {
   const { user } = useAuth();
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -11,33 +11,45 @@ export function usePWA() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // 🏛️ STEP 1: Always listen for the install prompt immediately
+    console.log("📱 usePWA: Hook mounted. isRitualActive=", isRitualActive, "user=", !!user);
+    // 🏛️ DETECTING THE VESSEL (Calculate once on mount/user change)
+    const ua = window.navigator.userAgent;
+    const iosCheck = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    const standaloneCheck = window.matchMedia('(display-mode: standalone)').matches;
+
+    setIsIOS(iosCheck);
+    setIsInstalled(standaloneCheck);
+
+    // 📜 STEP 1: The Android/Chrome Ritual (beforeinstallprompt)
     const handler = (e: any) => {
+      console.log("🎪 usePWA: beforeinstallprompt event fired!");
       e.preventDefault();
       setDeferredPrompt(e);
-      // Only show the pop-up automatically if a user is present
-      if (user) {
-        setTimeout(() => setShowPrompt(true), 500);
+      
+      // Only show if the user is authenticated AND the ritual has concluded
+      if (user && !isRitualActive) {
+        console.log("✅ usePWA: Conditions met (user && !isRitualActive), showing prompt after 1.5s");
+        setTimeout(() => setShowPrompt(true), 1500);
+      } else {
+        console.log("❌ usePWA: Conditions NOT met. user=", !!user, "isRitualActive=", isRitualActive);
       }
     };
 
     window.addEventListener("beforeinstallprompt", handler);
+    console.log("📱 usePWA: Added beforeinstallprompt listener");
 
-    // 🏛️ STEP 2: General Detection
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    setIsInstalled(isStandalone);
-
-    const ua = window.navigator.userAgent;
-    const ios = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-    setIsIOS(ios);
-
-    // iOS manual prompt delay (only if user is logged in)
-    if (ios && user && !isStandalone) {
-      setTimeout(() => setShowPrompt(true), 750);
+    // 📜 STEP 2: The iOS Manual Ritual
+    // If it's iOS, logged in, not installed, and the ritual is SILENT...
+    if (iosCheck && user && !standaloneCheck && !isRitualActive) {
+      console.log("📱 usePWA: iOS detected, showing manual prompt after 2.5s");
+      setTimeout(() => setShowPrompt(true), 2500);
     }
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, [user]); // Keep user in dependency array so prompts can trigger once logged in
+    return () => {
+      console.log("📱 usePWA: Cleaning up beforeinstallprompt listener");
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, [user, isRitualActive]); 
 
   const installChip = async () => {
     if (!deferredPrompt) return;
@@ -56,7 +68,6 @@ export function usePWA() {
     isIOS,
     isInstalled,
     installChip,
-    // ⚖️ PROPER JUSTIFICATION: canInstall is true if prompt exists OR it's iOS/Not installed
     canInstall: !!deferredPrompt || (isIOS && !isInstalled)
   };
 }

@@ -55,8 +55,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PwaInstallPrompt />
           <SidebarProvider>
             {children}
-            <PwaInstallPrompt />
+           
           </SidebarProvider>
+           <PwaInstallPrompt />
         </AuthProvider>
         <Toaster />
       </body>

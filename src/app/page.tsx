@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { AddTaskDialog } from "@/components/add-task-dialog";
 import { useTasks } from "@/hooks/use-tasks"; // 👈 Make sure this is here
 import { useToast } from '@/hooks/use-toast';
+import { PwaInstallPrompt } from "@/pwa-install-prompt"; // 🏺 Import the Herald
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<FilterCategory>('Today');
@@ -75,6 +76,7 @@ export default function Home() {
             <TaskList filter={activeCategory} />
           </main>
         </SidebarInset>
+        <PwaInstallPrompt />
       </div>
     );
   }

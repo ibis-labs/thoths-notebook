@@ -136,6 +136,15 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
     setSubtasks(newSubtasks);
   };
 
+  const handleToggleSubtask = (index: number) => {
+    const newSubtasks = [...subtasks];
+    newSubtasks[index] = {
+      ...newSubtasks[index],
+      completed: !newSubtasks[index].completed
+    };
+    setSubtasks(newSubtasks);
+  };
+
   const canEditDate = collectionName === "tasks" && !isSacredInstance;
 
   const handleSave = async () => {
@@ -149,7 +158,7 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
 
       if (masterKey) {
         const { ciphertext: titleCipher, iv } = await encryptData(masterKey, title);
-        const ivString = bufferToBase64(iv.buffer);
+        const ivString = bufferToBase64(iv.buffer as ArrayBuffer);
 
         let finalDetails = details ? bufferToBase64((await encryptData(masterKey, details, iv)).ciphertext) : null;
         let finalEncryptedSubtasks = (subtasks && subtasks.length > 0) ? bufferToBase64((await encryptData(masterKey, JSON.stringify(subtasks), iv)).ciphertext) : null;
