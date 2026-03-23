@@ -259,9 +259,25 @@ useEffect(() => {
                     }
                 } catch (e) {
                     console.error("DECRYPTION CRITICAL FAILURE:", e);
+                    if (isMounted) {
+                        setDecryptedTask(prev => ({
+                            ...prev,
+                            title: '🔒 Sealed — Key Mismatch',
+                            details: 'This task was encrypted with a different key and cannot be read. You may delete it.',
+                            subtasks: [],
+                        }));
+                    }
                 }
             } else {
                 console.warn("DECRYPTION SKIPPED: Missing MasterKey or IV.");
+                if (isMounted) {
+                    setDecryptedTask(prev => ({
+                        ...prev,
+                        title: '🔒 Sealed — Awaiting Key',
+                        details: '',
+                        subtasks: [],
+                    }));
+                }
             }
         }
 

@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth-provider';
 import { PtahManager } from '@/components/ptah-manager';
 import { OathGate } from '@/components/oath-gate';
+import { ArchiveUnlockGate } from '@/components/archive-unlock-gate';
 import { PwaInstallPrompt } from '@/pwa-install-prompt';
 
 // 1. Summon the fonts (Google Font Optimization)
@@ -51,13 +52,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${quantico.variable} ${orbitron.variable} font-body antialiased bg-black text-foreground`}>
         <AuthProvider>
           <PtahManager />
+          <ArchiveUnlockGate />
           <OathGate />
-          <PwaInstallPrompt />
           <SidebarProvider>
             {children}
            
           </SidebarProvider>
-           <PwaInstallPrompt />
         </AuthProvider>
         <Toaster />
       </body>
