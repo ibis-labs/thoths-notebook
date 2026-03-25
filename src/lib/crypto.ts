@@ -33,6 +33,17 @@ export async function importKeyFromJSON(jwk: JsonWebKey): Promise<CryptoKey> {
   );
 }
 
+// 📜 Ritual 3b: Manifest a Key from raw bytes (used for mnemonic recovery)
+export async function importKeyFromRaw(rawBuffer: ArrayBuffer): Promise<CryptoKey> {
+  return await window.crypto.subtle.importKey(
+    "raw",
+    rawBuffer,
+    { name: "AES-GCM" },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
 // 📜 Ritual 4: The Core Seal (Encryption)
 export async function encryptData(
   key: CryptoKey, 

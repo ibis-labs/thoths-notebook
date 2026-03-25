@@ -35,10 +35,15 @@ export const midnightScribe = onSchedule({
           estimatedTime: ritual.estimatedTime || 15,
           details: ritual.details || "",
           /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-          subtasks: (ritual.subtasks || []).map((st: any) => ({
-            ...st,
-            completed: false,
-          })),
+          subtasks: ritual.encryptedSubtasks ?
+            [] :
+            (ritual.subtasks || []).map((st: any) => ({
+              ...st,
+              completed: false,
+            })),
+          encryptedSubtasks: ritual.encryptedSubtasks || null,
+          isEncrypted: ritual.isEncrypted || false,
+          iv: ritual.iv || null,
           completed: false,
           createdAt: Timestamp.now(),
           dueDate: Timestamp.fromDate(today),

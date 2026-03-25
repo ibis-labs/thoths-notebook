@@ -7,13 +7,17 @@ import { db, auth } from "@/lib/firebase";
 import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { Scroll, ChevronDown, ChevronUp, ArrowLeft, Star, Moon, Sparkles } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
+import { useAuth } from "@/components/auth-provider";
+import { decryptData, base64ToBuffer } from "@/lib/crypto";
 // 🏺 Manifesting the Pylon
 import { FirstPylonIcon } from "@/components/icons/FirstPylonIcon";
 
 export default function ArchivesPage() {
   const router = useRouter();
+  const { masterKey } = useAuth();
   const { setOpenMobile } = useSidebar();
   const [chronicles, setChronicles] = useState<any[]>([]);
+  const [decryptedMap, setDecryptedMap] = useState<Record<string, any>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +52,39 @@ export default function ArchivesPage() {
 
     return () => unsubscribeAuth();
   }, []);
+
+  // Decrypt chronicle entries whenever chronicles load or masterKey becomes available
+  useEffect(() => {
+    if (!chronicles.length) return;
+    const decryptAll = async () => {
+      const newMap: Record<string, any> = {};
+      for (const entry of chronicles) {
+        if (!entry.isEncrypted || !entry.iv) {
+          newMap[entry.id] = entry;
+          continue;
+        }
+        if (!masterKey) {
+          newMap[entry.id] = { ...entry, winsNote: '🔒 Unlock vault to read', shadowWorkNote: '🔒 Unlock vault to read', tomorrowQuest: '🔒 Sealed', victoriesLog: [], retainedNunLog: [] };
+          continue;
+        }
+        try {
+          const ivUint8 = new Uint8Array(base64ToBuffer(entry.iv));
+          const winsNote = await decryptData(masterKey, base64ToBuffer(entry.winsNote), ivUint8);
+          const shadowWorkNote = await decryptData(masterKey, base64ToBuffer(entry.shadowWorkNote), ivUint8);
+          const tomorrowQuest = await decryptData(masterKey, base64ToBuffer(entry.tomorrowQuest), ivUint8);
+          const victoriesLog = JSON.parse(await decryptData(masterKey, base64ToBuffer(entry.victoriesLog), ivUint8));
+          const retainedNunLog = entry.retainedNunLog
+            ? JSON.parse(await decryptData(masterKey, base64ToBuffer(entry.retainedNunLog), ivUint8))
+            : [];
+          newMap[entry.id] = { ...entry, winsNote, shadowWorkNote, tomorrowQuest, victoriesLog, retainedNunLog };
+        } catch {
+          newMap[entry.id] = { ...entry, winsNote: '🔒 Sealed — Key Mismatch', shadowWorkNote: '🔒 Sealed — Key Mismatch', tomorrowQuest: '🔒 Sealed', victoriesLog: [], retainedNunLog: [] };
+        }
+      }
+      setDecryptedMap(newMap);
+    };
+    decryptAll();
+  }, [chronicles, masterKey]);
 
   const handleReturn = () => {
     setOpenMobile(false);
@@ -98,8 +135,7 @@ export default function ArchivesPage() {
             DECRYPTING ANCIENT SCROLLS...
           </div>
         ) : chronicles.map((entry) => {
-          const isExpanded = expandedId === entry.id;
-          return (
+          const isExpanded = expandedId === entry.id;          const displayEntry = (entry.isEncrypted ? decryptedMap[entry.id] : null) || entry;          return (
             <div
               key={entry.id}
               className={`group border rounded-2xl transition-all duration-500 ${isExpanded
@@ -126,7 +162,7 @@ export default function ArchivesPage() {
                     </h3>
                     {!isExpanded && (
                       <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1 italic">
-                        {entry.tomorrowQuest || "Quest Sealed"}
+                        {displayEntry.tomorrowQuest || "Quest Sealed"}
                       </p>
                     )}
                   </div>
@@ -141,14 +177,14 @@ export default function ArchivesPage() {
                       <h4 className="text-[10px] text-amber-500 font-bold uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
                         <Star size={12} /> Achievements
                       </h4>
-                      <p className="text-sm text-amber-100/90 italic font-serif leading-relaxed">"{entry.winsNote}"</p>
+                      <p className="text-sm text-amber-100/90 italic font-serif leading-relaxed">"{displayEntry.winsNote}"</p>
                     </div>
 
                     <div className="p-4 rounded-xl border border-indigo-500/20 bg-indigo-950/5">
                       <h4 className="text-[10px] text-indigo-400 font-bold uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
                         <Moon size={12} /> Shadow Reflection
                       </h4>
-                      <p className="text-sm text-indigo-100/80 leading-relaxed font-sans">"{entry.shadowWorkNote}"</p>
+                      <p className="text-sm text-indigo-100/80 leading-relaxed font-sans">"{displayEntry.shadowWorkNote}"</p>
                     </div>
                   </div>
                   <div className="p-4 rounded-xl border border-lime-500/30 bg-lime-950/5 shadow-[inset_0_0_15px_rgba(163,230,53,0.05)]">
@@ -156,12 +192,12 @@ export default function ArchivesPage() {
                       <Sparkles size={12} /> Tomorrow&apos;s Prophecy
                     </h4>
                     <p className="text-md text-lime-100/90 font-headline tracking-wide italic">
-                      {entry.tomorrowQuest || "No prophecy was recorded."}
+                      {displayEntry.tomorrowQuest || "No prophecy was recorded."}
                     </p>
                   </div>
                   <div className="pt-6 border-t border-cyan-500/20">
                     <div className="flex flex-wrap justify-center gap-2">
-                      {entry.victoriesLog?.map((task: string, i: number) => (
+                      {Array.isArray(displayEntry.victoriesLog) && displayEntry.victoriesLog.map((task: string, i: number) => (
                         <span key={i} className="text-[10px] px-3 py-1.5 bg-black border border-cyan-400/30 rounded-lg text-cyan-300 font-headline tracking-widest shadow-[inset_0_0_10px_rgba(34,211,238,0.1)]">
                           {task}
                         </span>

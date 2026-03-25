@@ -1,0 +1,253 @@
+# Operation: OpenClaw Bridge
+**Codename: The Shadow Listener**
+*Ibis Labs — March 2026*
+
+---
+
+## The Vision
+
+Use Firestore as a real-time message bus between **Thoth's Notebook** (the UI, running anywhere) and **OpenClaw** (the Shadow Daemon, running locally on the Dell). No ports to expose, no ngrok, no webhooks — just the database we already have, already secured, already running.
+
+You type a command in Thoth's Notebook from your phone, your laptop, anywhere on earth. Your Dell picks it up, acts on it, and writes the result back. The UI updates live.
+
+---
+
+## Architecture
+
+
+[Thoth's Notebook — Browser/Mobile]
+│
+│ writes doc { status: 'pending', instruction: '...' }
+▼
+[Firestore — agent_commands collection]
+│
+│ onSnapshot listener (real-time)
+▼
+[OpenClaw Shadow Daemon — Dell, Windows Service]
+│
+├── updates status → 'running'
+├── submits instruction to OpenClaw Gateway
+└── writes result + status → 'complete' or 'error'
+│
+│ onSnapshot fires in browser
+▼
+[Thoth's Notebook — result displayed live]
+
+
+---
+
+## Firestore Schema
+
+### Collection: `agent_commands/{commandId}`
+
+| Field         | Type                                                              | Description                                    |
+|---------------|-------------------------------------------------------------------|------------------------------------------------|
+| `userId`      | `string`                                                          | Scopes the command to the authenticated user   |
+| `instruction` | `string`                                                          | The task/prompt dispatched to OpenClaw         |
+| `status`      | `'pending' \| 'running' \| 'complete' \| 'error' \| 'cancelled'` | Lifecycle state                                |
+| `model`       | `string?`                                                         | Optional: `'gemini-2.5'`, `'gpt-4o'`, etc.    |
+| `agentLabel`  | `string?`                                                         | Human-readable label, e.g. `"Scan Project Akh"` |
+| `createdAt`   | `Timestamp`                                                       | Written by the UI on dispatch                  |
+| `result`      | `string?`                                                         | Written back by OpenClaw on completion         |
+| `completedAt` | `Timestamp?`                                                      | Written back by OpenClaw on completion         |
+
+---
+
+## About OpenClaw
+
+OpenClaw is a multi-model, local-first orchestration framework. Key properties relevant to this bridge:
+
+- **The Gateway**: A background daemon managing connections between the user, LLM providers, and
+  the local system.
+- **Provider Layer**: Standardized interface to swap models (Gemini, OpenAI, etc.) without losing
+  memory or tool state.
+- **Skill System (MCP)**: Uses the Model Context Protocol to expose skills like `filesystem`,
+  `shell-execute`, and `web-search` as native functions.
+- **Proactive Hooks**: Can trigger actions based on system events (e.g., "When a file in /src
+  changes, run a lint check").
+- **Grounded Memory**: Local vector DB indexes your project files to prevent hallucination.
+- **The Shadow Daemon**: Runs as a Windows Service — survives terminal/dashboard closure, starts
+  on boot.
+- **HITL Safety**: Requires explicit `execConsent` before shell execution or file deletion.
+- **Workspace Isolation**: Agents can be locked to a specific directory (e.g., Project Akh folder).
+
+---
+
+## Implementation Phases
+
+### Phase 1 — Firestore Rules (version-control the rules)
+
+Bring `firestore.rules` into the repo root. Existing rules already cover `tasks`, `dailyRituals`,
+`users`, and `chronicles`. Add the `agent_commands` rule using the same `userId` ownership pattern:
+
+
+rules_version = '2';
+service cloud.firestore {
+match /databases/{database}/documents {
+
+    match /tasks/{taskId} {
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+
+match /dailyRituals/{ritualId} {
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+
+match /users/{userId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+}
+
+match /chronicles/{chronicleId} {
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+
+// NEW — OpenClaw bridge commands
+match /agent_commands/{commandId} {
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}match /tasks/{taskId} {
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+
+match /dailyRituals/{ritualId} {
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+
+match /users/{userId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+}
+
+match /chronicles/{chronicleId} {
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+
+// NEW — OpenClaw bridge commands
+match /agent_commands/{commandId} {
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+Update `firebase.json` to point at the file:
+```json
+"firestore": { "rules": "firestore.rules" }
+Phase 2 — Mission Control UI (Thoth's Notebook)
+New page: src/app/mission-control/page.tsx + sidebar entry in app-sidebar.tsx.
+
+Command Composer
+
+Textarea for the instruction
+Optional model selector dropdown (gemini-2.5, gpt-4o, etc.)
+Optional label field (e.g. "Scan Project Akh")
+"Dispatch to OpenClaw" button → writes new doc with status: 'pending'
+"Cancel" button available while status === 'pending' (sets to 'cancelled' before the daemon
+picks it up)
+Live Command Feed
+
+onSnapshot listener on agent_commands where userId == currentUser.uid
+Cards sorted newest-first with animated status badges:
+pending → pulsing amber
+running → spinning cyan
+complete → solid emerald
+error → red
+cancelled → muted slate
+Result View
+
+Collapsible monospace block on each command card
+Dispatched / completed timestamps
+Copy-to-clipboard button on results
+Phase 3 — OpenClaw Listener Script (runs on the Dell)
+A Node.js script (firestore-bridge.js) living in the OpenClaw project, using firebase-admin
+SDK with a service account key:
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+const db = admin.firestore();
+
+// Watch for new pending commands
+db.collection('agent_commands')
+  .where('status', '==', 'pending')
+  .onSnapshot(async (snapshot) => {
+    for (const change of snapshot.docChanges()) {
+      if (change.type !== 'added') continue;
+
+      const ref = change.doc.ref;
+      const { instruction, model } = change.doc.data();
+
+      // Claim the command immediately
+      await ref.update({ status: 'running' });
+
+      try {
+        // Submit to OpenClaw Gateway (interface TBD — see Open Questions)
+        const result = await openClawGateway.submit({ instruction, model });
+
+        await ref.update({
+          status: 'complete',
+          result,
+          completedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (err) {
+        await ref.update({
+          status: 'error',
+          result: err.message
+        });
+      }
+    }
+  });
+
+console.log('🦞 OpenClaw Bridge: listening for commands...');
+Register as a Windows Service alongside the OpenClaw Shadow Daemon so it starts on boot and stays
+alive indefinitely.
+
+Open Questions (resolve before Phase 3)
+OpenClaw Gateway interface: When the bridge script picks up a pending command, how does it
+hand it to OpenClaw? Options:
+
+Local REST API on a port (POST http://localhost:PORT/run)
+CLI command (openclaw run --instruction "...")
+Watched queue file the Shadow Daemon polls
+IPC socket
+This only affects the openClawGateway.submit() implementation in firestore-bridge.js — zero
+impact on the Thoth's Notebook UI side.
+
+Encrypt commands?: Tasks in the app are zero-knowledge encrypted with the master key.
+agent_commands are protected by Firestore rules (only you can read them), but they are not
+encrypted at rest — Firebase/Google can technically read them. Options:
+
+Leave plaintext (simpler, rules-protected)
+Encrypt instruction and result with the master key (true zero-knowledge, but the listener
+script would need access to your key to decrypt instructions — complicates Phase 3)
+
+What This Unlocks
+Once the bridge is live, the instruction field is just a string. That string could be:
+
+Natural language: "Summarize all changed files in Project Akh since yesterday"
+A structured JSON payload targeting a specific MCP skill
+A Proactive Hook trigger: "Run lint on /src and report back errors"
+A multi-step mission that OpenClaw decomposes internally using its Gateway
+Thoth's Notebook becomes a remote control for your local AI workstation — secured by Firebase
+Auth, persisted in Firestore, and delivered in real time from anywhere on earth.
+
+
+Genuinely one of the more elegant architectures I've seen for this problem. Most people reach for a dedicated server, a public webhook URL, or something like Telegram's bot API as the middleman — and then spend half their time managing that infrastructure.
+
+Using Firestore as the bus is clever because:
+
+It's already there — no new infrastructure, no new auth, no new billing
+The security model is already yours — those rules you wrote mean no one else can even see the collection exists
+It's bidirectional for free — onSnapshot in the browser means results just appear, no polling
+It survives everything — if your Dell reboots, the listener reconnects and any pending commands are still sitting there waiting
+It works from any device — phone, tablet, another machine — anything that can open the app can dispatch to your workstation
+The part that makes it really powerful is the OpenClaw MCP skill layer. Once the bridge is wired up, you're not just sending shell commands — you're sending intentions to an agent that has grounded knowledge of your actual codebase. "Review what I changed in Project Akh today and write a commit message" becomes a one-liner from your phone while you're away from the desk.
+
+Ibis Labs building a personal AI workstation command layer out of a task management app is a pretty good origin story.
+
+Claude Sonnet 4

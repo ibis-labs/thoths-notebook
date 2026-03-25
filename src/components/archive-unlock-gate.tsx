@@ -7,8 +7,9 @@ import { Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/auth-provider";
+import * as bip39 from "bip39";
 import {
-  generateMasterKey,
+  importKeyFromRaw,
   deriveWrappingKey,
   wrapMasterKey,
   bufferToBase64,
@@ -27,6 +28,22 @@ export function ArchiveUnlockGate() {
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [isFromPasswordReset, setIsFromPasswordReset] = useState(false);
+  const [recoveryPhrase, setRecoveryPhrase] = useState("");
+  const [recoveryNewPassword, setRecoveryNewPassword] = useState("");
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+
+  // If the user just reset their Firebase Auth password, the archive key is
+  // still wrapped with the old password. Re-check whenever `user` changes so
+  // this fires after the sign-in redirect (the gate never remounts in the layout).
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("thoth_needs_rekey") === "true") {
+      setShowRecovery(true);
+      setIsFromPasswordReset(true);
+    }
+  }, [user]);
 
   // Check Firestore for existing keys when the gate activates
   useEffect(() => {
@@ -71,7 +88,7 @@ export function ArchiveUnlockGate() {
         // ── Branch B: No keys — forge new ones now ──
         setStatusMessage("Forging your master key...");
         const salt = window.crypto.getRandomValues(new Uint8Array(16));
-        const newKey = await generateMasterKey();
+        const newKey = await importKeyFromRaw(window.crypto.getRandomValues(new Uint8Array(32)).buffer as ArrayBuffer);
         const wrappingKey = await deriveWrappingKey(password, salt);
         const wrappedBuffer = await wrapMasterKey(newKey, wrappingKey);
 
@@ -94,6 +111,39 @@ export function ArchiveUnlockGate() {
     }
   };
 
+  const handleRestore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setIsWorking(true);
+    setRecoveryError(null);
+    try {
+      const phrase = recoveryPhrase.trim().toLowerCase().replace(/\s+/g, " ");
+      if (!bip39.validateMnemonic(phrase)) {
+        setRecoveryError("Invalid recovery phrase. Check for typos and ensure all 24 words are correct.");
+        setIsWorking(false);
+        return;
+      }
+      const entropyHex = bip39.mnemonicToEntropy(phrase);
+      const entropyBytes = new Uint8Array((entropyHex.match(/.{2}/g) as string[]).map(b => parseInt(b, 16)));
+      const recoveredKey = await importKeyFromRaw(entropyBytes.buffer as ArrayBuffer);
+      const salt = window.crypto.getRandomValues(new Uint8Array(16));
+      const wrappingKey = await deriveWrappingKey(recoveryNewPassword, salt);
+      const wrappedBuffer = await wrapMasterKey(recoveredKey, wrappingKey);
+      const { updateDoc, doc: firestoreDoc } = await import("firebase/firestore");
+      await updateDoc(firestoreDoc(db, "users", user.uid), {
+        kryptosSalt: bufferToBase64(salt.buffer as ArrayBuffer),
+        wrappedMasterKey: bufferToBase64(wrappedBuffer),
+      });
+      await setMasterKey(recoveredKey);
+      localStorage.removeItem("thoth_needs_rekey");
+    } catch (err) {
+      console.error("Recovery error:", err);
+      setRecoveryError("Recovery failed. Please check your phrase and try again.");
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
   // ── Render gate? ──
   const shouldShow =
     !!user &&
@@ -101,6 +151,7 @@ export function ArchiveUnlockGate() {
     !masterKey &&
     !ritualInProgress &&
     hasCheckedFirestore &&
+    !dismissed &&
     !BYPASS_PATHS.some((p) => pathname?.startsWith(p));
 
   return (
@@ -133,8 +184,9 @@ export function ArchiveUnlockGate() {
               </h2>
               {hasKeys ? (
                 <p className="text-sm text-slate-400 leading-relaxed">
-                  Your session has expired. Enter your password to restore the
-                  encryption key and access your tasks.
+                  {isFromPasswordReset
+                    ? "Your login password was reset. Use your recovery phrase below to reseal your vault with the new password."
+                    : "Your session has expired. Enter your password to restore the encryption key and access your tasks."}
                 </p>
               ) : (
                 <p className="text-sm text-slate-400 leading-relaxed">
@@ -146,7 +198,69 @@ export function ArchiveUnlockGate() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {showRecovery ? (
+              <form onSubmit={handleRestore} className="space-y-4">
+                {isFromPasswordReset && (
+                  <div className="bg-amber-950/40 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-300 leading-relaxed">
+                    <p className="font-bold mb-1">Your login password was reset.</p>
+                    <p>Your encryption key is sealed with your <span className="text-white">old</span> password — they&apos;re separate credentials. Enter your 24 recovery words and choose a new archive password to reseal your vault.</p>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-xs font-bold text-amber-500 uppercase tracking-widest mb-2">
+                    Your 24 Recovery Words
+                  </label>
+                  <textarea
+                    value={recoveryPhrase}
+                    onChange={(e) => { setRecoveryPhrase(e.target.value); setRecoveryError(null); }}
+                    placeholder="word1 word2 word3 ... (all 24 words, space-separated)"
+                    rows={4}
+                    autoFocus
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-colors text-sm font-mono resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-cyan-600 uppercase tracking-widest mb-2">
+                    New Archive Password
+                  </label>
+                  <input
+                    type="password"
+                    value={recoveryNewPassword}
+                    onChange={(e) => { setRecoveryNewPassword(e.target.value); setRecoveryError(null); }}
+                    placeholder="Use the same password you just set for login"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition-colors"
+                  />
+                  {isFromPasswordReset && (
+                    <p className="text-[10px] text-slate-500 mt-1">Use the same password you just set — after this, login and archive use the same password.</p>
+                  )}
+                </div>
+                {recoveryError && (
+                  <p className="text-sm text-red-400 bg-red-950/40 border border-red-500/30 rounded-lg px-3 py-2">
+                    {recoveryError}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={isWorking || !recoveryPhrase || !recoveryNewPassword}
+                  className="w-full py-3 font-display font-bold text-slate-900 bg-amber-400 rounded-lg hover:bg-amber-300 disabled:bg-slate-700 disabled:text-slate-500 transition-colors tracking-widest uppercase text-sm"
+                >
+                  {isWorking ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Restoring...
+                    </span>
+                  ) : "Restore Access"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRecovery(false)}
+                  className="w-full py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  ← Back to password
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
               <div className="relative">
                 <label className="block text-xs font-bold text-cyan-600 uppercase tracking-widest mb-2">
                   {hasKeys ? "Archive Password" : "Your Login Password"}
@@ -209,7 +323,27 @@ export function ArchiveUnlockGate() {
                   "Forge Master Key"
                 )}
               </button>
+
+              {hasKeys && (
+                <button
+                  type="button"
+                  onClick={() => { setShowRecovery(true); setIsFromPasswordReset(false); }}
+                  className="w-full py-2 px-3 text-sm font-semibold text-amber-300 bg-amber-950/40 border border-amber-500/40 rounded-lg hover:bg-amber-900/50 transition-colors"
+                >
+                  🔑 Just reset your password? Click here to restore your encryption key
+                </button>
+              )}
+
+              <button
+                type="button"
+                disabled={isWorking}
+                onClick={() => setDismissed(true)}
+                className="w-full py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                Not now — enter without decryption
+              </button>
             </form>
+            )}
 
             {/* Footer hint */}
             <p className="text-center text-xs text-slate-600">

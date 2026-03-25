@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { collection, query, where, getDocs, writeBatch, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { useAuth } from "@/components/auth-provider";
+import { encryptData, decryptData, bufferToBase64, base64ToBuffer } from "@/lib/crypto";
 
 // --- THE NEW MODULAR COMPONENTS ---
 import { ChronicleThreshold } from "./components/chronicle-threshold";
@@ -20,13 +22,17 @@ interface Task {
   completed: boolean;
   dueDate?: string;
   originRitualId?: string;
+  isEncrypted?: boolean;
+  iv?: string;
 }
 
 export default function EveningChroniclePage() {
   const router = useRouter();
+  const { masterKey } = useAuth();
   const [step, setStep] = useState(1);
   const [user, setUser] = useState<any>(null);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [decryptedTasks, setDecryptedTasks] = useState<Task[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0); // 🏺 Moved inside component
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -61,6 +67,24 @@ export default function EveningChroniclePage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Decrypt task titles when tasks or masterKey change
+  useEffect(() => {
+    if (!allTasks.length) { setDecryptedTasks([]); return; }
+    if (!masterKey) { setDecryptedTasks(allTasks); return; }
+    const run = async () => {
+      const results = await Promise.all(allTasks.map(async (task) => {
+        if (!task.isEncrypted || !task.iv) return task;
+        try {
+          const ivUint8 = new Uint8Array(base64ToBuffer(task.iv));
+          const title = await decryptData(masterKey, base64ToBuffer(task.title), ivUint8);
+          return { ...task, title };
+        } catch { return task; }
+      }));
+      setDecryptedTasks(results);
+    };
+    run();
+  }, [allTasks, masterKey]);
+
   // ⚡ THE MANUAL SEAL RITUAL
   const handleSealChronicle = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,14 +95,14 @@ export default function EveningChroniclePage() {
       const batch = writeBatch(db);
 
       // 🏺 INTERNAL SCRYING FOR THE ARCHIVE
-      const completedTasks = allTasks.filter(t => t.completed);
+      const completedTasks = decryptedTasks.filter(t => t.completed);
       // Logic for Nun: rituals or overdue items
       const now = new Date();
       const scribeDate = (now.getHours() < 2 || (now.getHours() === 2 && now.getMinutes() < 30))
         ? new Date(now.setDate(now.getDate() - 1)).toISOString().split('T')[0]
         : now.toISOString().split('T')[0];
 
-      const incompleteRituals = allTasks.filter(t => 
+      const incompleteRituals = decryptedTasks.filter(t => 
         !t.completed && (t.category === "Daily Ritual" || t.isRitual || (t.dueDate && t.dueDate <= scribeDate))
       );
 
@@ -94,16 +118,39 @@ export default function EveningChroniclePage() {
 
       // 2. CREATE ARCHIVE
       const archiveRef = doc(collection(db, "chronicles"));
-      batch.set(archiveRef, {
+      const victoriesLog = completedTasks.map(t => t.title);
+      const retainedNunLog = incompleteRituals.map(t => t.title);
+      let chronicleDoc: Record<string, unknown> = {
         userId: user.uid,
         createdAt: serverTimestamp(),
-        date: scribeDate, // Use consistent scribe date
-        victoriesLog: completedTasks.map(t => t.title),
-        retainedNunLog: incompleteRituals.map(t => t.title),
-        ...formState,
+        date: scribeDate,
+        victoriesLog,
+        retainedNunLog,
+        winsNote: formState.winsNote,
+        shadowWorkNote: formState.shadowWorkNote,
+        tomorrowQuest: formState.tomorrowQuest,
         streakAtSeal: newStreak,
-        type: "evening-seal"
-      });
+        type: "evening-seal",
+        isEncrypted: false,
+      };
+      if (masterKey) {
+        const { ciphertext: winsC, iv } = await encryptData(masterKey, formState.winsNote || "");
+        const { ciphertext: shadowC } = await encryptData(masterKey, formState.shadowWorkNote || "", iv);
+        const { ciphertext: questC } = await encryptData(masterKey, formState.tomorrowQuest || "", iv);
+        const { ciphertext: victoriesC } = await encryptData(masterKey, JSON.stringify(victoriesLog), iv);
+        const { ciphertext: retainedC } = await encryptData(masterKey, JSON.stringify(retainedNunLog), iv);
+        chronicleDoc = {
+          ...chronicleDoc,
+          winsNote: bufferToBase64(winsC),
+          shadowWorkNote: bufferToBase64(shadowC),
+          tomorrowQuest: bufferToBase64(questC),
+          victoriesLog: bufferToBase64(victoriesC),
+          retainedNunLog: bufferToBase64(retainedC),
+          iv: bufferToBase64(iv.buffer as ArrayBuffer),
+          isEncrypted: true,
+        };
+      }
+      batch.set(archiveRef, chronicleDoc);
 
       // 3. UPDATE USER STATS
       batch.update(userRef, {
@@ -174,14 +221,14 @@ ritualsToPurge.forEach(t => batch.delete(doc(db, "tasks", t.id)));
         <ChronicleThreshold onNext={() => setStep(2)} onMainHall={() => router.push("/")} />
       )}
       {step === 2 && (
-        <MaatAttestation allTasks={allTasks} onNext={() => setStep(3)} onBack={() => setStep(1)} onMainHall={() => router.push("/")} />
+        <MaatAttestation allTasks={decryptedTasks} onNext={() => setStep(3)} onBack={() => setStep(1)} onMainHall={() => router.push("/")} />
       )}
       {step === 3 && (
         <GratitudeBreath onNext={() => setStep(4)} onBack={() => setStep(2)} onMainHall={() => router.push("/")} />
       )}
       {step === 4 && (
         <ChronicleSealingForm
-          completedTasks={allTasks.filter(t => t.completed)} // 🏺 Pass only deeds here
+          completedTasks={decryptedTasks.filter(t => t.completed)}
           formState={formState}
           setFormState={setFormState}
           onSeal={handleSealChronicle}

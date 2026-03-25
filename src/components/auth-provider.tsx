@@ -142,6 +142,12 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
     });
 
     const restoreKeyFromBridge = async () => {
+      // If a password reset is in progress, the stored key was wrapped with the
+      // old password and should not be restored — the gate will handle re-wrapping.
+      if (localStorage.getItem("thoth_needs_rekey") === "true") {
+        sessionStorage.removeItem("thoth_session_key");
+        return;
+      }
       const savedKeyBase64 = sessionStorage.getItem("thoth_session_key");
       if (savedKeyBase64) {
         try {

@@ -1,6 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { updateProfile } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { usePWA } from "@/hooks/use-PWA";
@@ -14,8 +17,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useRouter } from "next/navigation";
 import { IstanbulDial } from "@/components/IstanbulDial"; 
 import { ObeliskGuardian } from "@/components/IstanbulProtocol/ObeliskGuardian";
-import IstanbulRitual from "@/components/IstanbulProtocol/IstanbulRitual";
-
+import IstanbulRitual from "@/components/IstanbulProtocol/IstanbulRitual";import { RecoveryPhrasePanel } from '@/components/recovery-phrase-panel';
 export default function ScribeDossierPage() {
   const { user } = useAuth();
   const { installChip, isInstalled, canInstall } = usePWA();
@@ -24,6 +26,23 @@ export default function ScribeDossierPage() {
   
   // Ritual State
   const [showKeypad, setShowKeypad] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [nameSaved, setNameSaved] = useState(false);
+
+  const saveDisplayName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newName.trim()) return;
+    try {
+      await updateProfile(user, { displayName: newName.trim() });
+      await updateDoc(doc(db, "users", user.uid), { displayName: newName.trim() });
+      setIsEditingName(false);
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 3000);
+    } catch (err) {
+      console.error("Failed to save display name:", err);
+    }
+  };
 
   const handleReturn = () => {
     setOpenMobile(false);
@@ -36,7 +55,7 @@ export default function ScribeDossierPage() {
 
   const isDjehuty = user?.uid === "YOUR_SORCERER_UID";
   const rank = isDjehuty ? "Sorcerer of Cyber Glyphs" : "Initiate Scribe of the First Hour";
-const [ritualState, setRitualState] = useState('dossier');
+const [ritualState, setRitualState] = useState<'dossier' | 'ritual' | 'recovery'>('dossier');
   return (
     <div className="min-h-screen bg-black text-cyan-50 flex flex-col items-center pb-20 px-4 overflow-x-hidden">
       {/* 🌌 CELESTIAL BACKGROUND */}
@@ -66,9 +85,35 @@ const [ritualState, setRitualState] = useState('dossier');
             </div>
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-headline tracking-[0.15em] uppercase text-cyan-100">
-              {user?.displayName || "Scribe of Light"}
-            </h1>
+            {isEditingName ? (
+              <form onSubmit={saveDisplayName} className="flex flex-col items-center gap-3">
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Enter your Scribe Name"
+                  autoFocus
+                  className="px-4 py-2 bg-slate-900 border border-cyan-500/50 rounded-lg text-cyan-100 placeholder-slate-600 focus:border-cyan-400 focus:outline-none text-center font-headline tracking-wider uppercase"
+                />
+                <div className="flex gap-2">
+                  <button type="submit" className="px-4 py-1.5 text-xs font-bold bg-cyan-400 text-black rounded-lg hover:bg-cyan-300 transition-colors uppercase tracking-widest">Save</button>
+                  <button type="button" onClick={() => setIsEditingName(false)} className="px-4 py-1.5 text-xs font-bold border border-slate-700 text-slate-400 rounded-lg hover:text-slate-200 transition-colors uppercase tracking-widest">Cancel</button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <h1 className="text-2xl font-headline tracking-[0.15em] uppercase text-cyan-100">
+                  {user?.displayName || <span className="text-slate-600 italic normal-case text-base">No name set</span>}
+                </h1>
+                {nameSaved && <p className="text-[10px] text-lime-400 mt-1">✓ Name updated</p>}
+                <button
+                  onClick={() => { setNewName(user?.displayName || ''); setIsEditingName(true); }}
+                  className="mt-1 text-[10px] text-slate-600 hover:text-cyan-400 transition-colors uppercase tracking-widest"
+                >
+                  ✎ Edit Name
+                </button>
+              </>
+            )}
             <p className="mt-2 text-cyan-400 font-mono text-[9px] tracking-[0.2em] uppercase border border-cyan-900/30 px-3 py-1 rounded-full inline-block">
               Rank: {rank}
             </p>
@@ -76,25 +121,44 @@ const [ritualState, setRitualState] = useState('dossier');
         </div>
 
         {/* 🗿 THE RITUAL COURT (The Obelisk) */}
-       <div className="w-full max-w-md space-y-6 relative z-10 flex flex-col items-center">
+       <div className="w-full max-w-md space-y-4 relative z-10 flex flex-col items-center">
 
   {/* 🏛️ THE AMBER TRIGGER BUTTON */}
   {ritualState === 'dossier' && (
-    <button
-      onClick={() => setRitualState('ritual')}
-      className="flex flex-col items-center justify-center p-6 rounded-3xl border-2 border-amber-500/50 bg-amber-950/20 active:scale-95 transition-all shadow-[0_0_20px_rgba(251,191,36,0.2)] w-full max-w-xs group"
-    >
-      <div className="relative mb-4">
-        <div className="absolute -inset-2 bg-amber-500/20 rounded-full blur-md group-hover:bg-amber-500/40 transition-all" />
-        <Scroll className="w-10 h-10 text-amber-500 relative" />
-      </div>
-      <span className="font-headline font-bold text-[10px] tracking-[0.3em] uppercase text-amber-400">
-        Initiate Obelisk Ritual
-      </span>
-      <p className="mt-2 text-[8px] text-amber-600/60 font-mono tracking-widest uppercase">
-        Tap to Awaken the Monolith
-      </p>
-    </button>
+    <>
+      <button
+        onClick={() => setRitualState('ritual')}
+        className="flex flex-col items-center justify-center p-6 rounded-3xl border-2 border-amber-500/50 bg-amber-950/20 active:scale-95 transition-all shadow-[0_0_20px_rgba(251,191,36,0.2)] w-full max-w-xs group"
+      >
+        <div className="relative mb-4">
+          <div className="absolute -inset-2 bg-amber-500/20 rounded-full blur-md group-hover:bg-amber-500/40 transition-all" />
+          <Scroll className="w-10 h-10 text-amber-500 relative" />
+        </div>
+        <span className="font-headline font-bold text-[10px] tracking-[0.3em] uppercase text-amber-400">
+          Initiate Obelisk Ritual
+        </span>
+        <p className="mt-2 text-[8px] text-amber-600/60 font-mono tracking-widest uppercase">
+          Tap to Awaken the Monolith
+        </p>
+      </button>
+
+      {/* 🔑 RECOVERY PHRASE BUTTON */}
+      <button
+        onClick={() => setRitualState('recovery')}
+        className="flex flex-col items-center justify-center p-6 rounded-3xl border-2 border-cyan-900/60 bg-cyan-950/10 active:scale-95 transition-all shadow-[0_0_12px_rgba(34,211,238,0.08)] w-full max-w-xs group hover:border-cyan-700/60 hover:shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+      >
+        <div className="relative mb-4">
+          <div className="absolute -inset-2 bg-cyan-500/10 rounded-full blur-md group-hover:bg-cyan-500/20 transition-all" />
+          <ShieldCheck className="w-10 h-10 text-cyan-600 group-hover:text-cyan-400 relative transition-colors" />
+        </div>
+        <span className="font-headline font-bold text-[10px] tracking-[0.3em] uppercase text-cyan-600 group-hover:text-cyan-400 transition-colors">
+          Sacred Recovery Phrase
+        </span>
+        <p className="mt-2 text-[8px] text-cyan-900/80 font-mono tracking-widest uppercase">
+          View your 24-word master key
+        </p>
+      </button>
+    </>
   )}
         </div>
 
@@ -126,6 +190,31 @@ const [ritualState, setRitualState] = useState('dossier');
          The Obelisk, the Knocks, the Zoom, and the Keypad 
       */}
       <IstanbulRitual />
+    </motion.div>
+  )}
+
+  {/* 🔑 RECOVERY PHRASE OVERLAY */}
+  {ritualState === 'recovery' && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+    >
+      <div className="w-full max-w-md bg-slate-950 border border-amber-500/30 rounded-2xl shadow-[0_0_60px_rgba(251,191,36,0.1)] p-6 my-auto">
+        <div className="flex justify-between items-center mb-6">
+          <span className="text-[9px] font-mono text-amber-700 tracking-widest uppercase">
+            Scribe's Dossier / Recovery
+          </span>
+          <button
+            onClick={() => setRitualState('dossier')}
+            className="text-slate-600 hover:text-slate-300 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <RecoveryPhrasePanel onClose={() => setRitualState('dossier')} />
+      </div>
     </motion.div>
   )}
 </AnimatePresence>

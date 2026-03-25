@@ -6,10 +6,11 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { generateMasterKey, deriveWrappingKey, wrapMasterKey, saveWrappedKeyLocally, unwrapKeyFromPhrase, base64ToBuffer } from '@/lib/crypto';
+import { importKeyFromRaw, deriveWrappingKey, wrapMasterKey, unwrapKeyFromPhrase, base64ToBuffer } from '@/lib/crypto';
 import { bufferToBase64, encryptData, decryptData } from '@/lib/crypto';
 import * as bip39 from 'bip39';
 import { useAuth } from '@/components/auth-provider'; // Import our custom auth hook
@@ -27,36 +28,32 @@ export default function LoginPage() {
   const [showDemo, setShowDemo] = useState(false);
   const [demoText, setDemoText] = useState('');
   const [demoShadow, setDemoShadow] = useState('');
-  const { setMasterKey, masterKey } = useAuth(); // Ensure setMasterKey is in your AuthProvider
+  const { setMasterKey, masterKey } = useAuth();
   const [demoDecrypted, setDemoDecrypted] = useState('');
   const [showProof, setShowProof] = useState(false);
   const router = useRouter();
   const [isSigningUp, setIsSigningUp] = useState(false);
-  const { user } = useAuth(); // Get the current user from our context
+  const [mode, setMode] = useState<'signin' | 'signup' | 'recover'>('signin');
+  const [recoveryPhrase, setRecoveryPhrase] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryPassword, setRecoveryPassword] = useState('');
+  const [recoverySent, setRecoverySent] = useState(false);
+  const { user } = useAuth();
 
   // NEW: This useEffect hook will handle redirecting the user if they are already logged in.
   // This makes our navigation logic robust and centralized.
 useEffect(() => {
   if (!user) return;
-
-  // 🏛️ THE SUPREME RULE: 
-  // If we are in the middle of a signup ritual, the Gatekeeper stays silent.
   if (isSigningUp) return;
-
-  // 🧪 DEMO PHASE: Don't navigate while showing the demo or mnemonic
   if (showDemo || showMnemonic) return;
-
-  // 1. If the Ritual is finished, send them to Istanbul
   if (ritualComplete) {
     router.push('/IstanbulProtocol');
     return;
   }
-
-  // 2. Standard login logic for returning scribes
-  if (!isLoading && !displayName) {
+  if (!isLoading) {
     router.push('/');
   }
-}, [user, ritualComplete, isLoading, displayName, router, isSigningUp, showDemo, showMnemonic]);
+}, [user, ritualComplete, isLoading, router, isSigningUp, showDemo, showMnemonic]);
   useEffect(() => {
     const encryptDemo = async () => {
       if (demoText && masterKey) {
@@ -79,8 +76,13 @@ useEffect(() => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      const mnemonic = bip39.generateMnemonic(256); // 256-bit entropy → 24 words
+      const entropyHex = bip39.mnemonicToEntropy(mnemonic);
+      const entropyBytes = new Uint8Array((entropyHex.match(/.{2}/g) as string[]).map(b => parseInt(b, 16)));
+      const generatedMasterKey = await importKeyFromRaw(entropyBytes.buffer as ArrayBuffer);
+      setWords(mnemonic.split(' '));
+
       const salt = window.crypto.getRandomValues(new Uint8Array(16));
-      const generatedMasterKey = await generateMasterKey();
 
       // 🔑 SHIFT: Save key to global RAM immediately
       setMasterKey(generatedMasterKey);
@@ -102,19 +104,6 @@ useEffect(() => {
       } catch (e) {
         console.warn("Could not update Auth profile displayName:", e);
       }
-const mnemonic = bip39.generateMnemonic(); // Generates 12 standard words
-setWords(mnemonic.split(' '));
-      const generateSacredMnemonic = (keyBuffer: ArrayBuffer) => {
-  // In a production app, we'd use the 'bip39' library here.
-  // For our Forge, we can derive 12 indices from your masterKey's bytes.
-  const bytes = new Uint8Array(keyBuffer);
-  const sacredLibrary = ["osiris", "thoth", "obelisk", "papyrus", "nile", "scribe", "cedar", "lotus", "falcon", "scarab", "amulet", "temple", "sun", "moon", "star", "desert"]; // ... imagine 2048 words here
-  
-  // Logic to pick words based on the actual key bits
-  // This ensures the words are TIED to the key.
-  return Array.from({ length: 12 }, (_, i) => sacredLibrary[bytes[i] % sacredLibrary.length]);
-};
-
       // 🧪 PIVOT: Go to Demo first
       setIsSigningUp(false); // Release the gate so we can proceed through the ritual
       setShowDemo(true);
@@ -135,7 +124,6 @@ setWords(mnemonic.split(' '));
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const signedInUser = userCredential.user;
 
-      // 🔑 RETRIEVE & UNWRAP: Get the wrapped key directly from Firestore using the signed-in user
       const userDoc = await getDoc(doc(db, "users", signedInUser.uid));
       if (!userDoc.exists()) {
         setError("User profile not found. Please sign up first.");
@@ -151,20 +139,47 @@ setWords(mnemonic.split(' '));
         return;
       }
 
-      // Unwrap the master key using the password
-      const unlockedKey = await unwrapKeyFromPhrase(
-        password,
-        base64ToBuffer(wrappedMasterKey),
-        base64ToBuffer(salt)
-      );
-
-      // Set the master key in the auth context
-      setMasterKey(unlockedKey);
-      console.log("✅ Sign-in: Master key successfully unwrapped and loaded.");
-
+      // Attempt to unwrap the archive key with the login password.
+      // This fails when the user has reset their Firebase Auth password but
+      // the archive key is still wrapped with the old one.
+      try {
+        const unlockedKey = await unwrapKeyFromPhrase(
+          password,
+          base64ToBuffer(wrappedMasterKey),
+          base64ToBuffer(salt)
+        );
+        setMasterKey(unlockedKey);
+      } catch {
+        // Firebase Auth succeeded but the archive key can't be unlocked with
+        // the new password. The key is still wrapped with the old password.
+        // Clear both the sessionStorage entry AND the in-memory React state so
+        // the archive gate actually shows (it checks !masterKey in context).
+        localStorage.setItem('thoth_needs_rekey', 'true');
+        await setMasterKey(null); // clears sessionStorage + React context key
+        // No error shown — user is signed in and will be redirected;
+        // the gate will explain what to do next.
+      }
     } catch (err: any) {
       console.error("❌ Sign-in error:", err);
+      sessionStorage.removeItem("thoth_session_key");
       setError(err.message || "Sign-in failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRecoverWithPhrase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, recoveryEmail.trim());
+      // Flag the archive-unlock-gate to open in recovery mode after the
+      // user resets their password and signs back in.
+      localStorage.setItem('thoth_needs_rekey', 'true');
+      setRecoverySent(true);
+    } catch (err: any) {
+      setError(err.message || 'Could not send reset email.');
     } finally {
       setIsLoading(false);
     }
@@ -173,60 +188,200 @@ setWords(mnemonic.split(' '));
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-100 font-body p-4">
 
-      {/* 1. THE LOGIN / SIGN-UP GATE (Phase 1) */}
+      {/* 1. SIGN-IN / SIGN-UP GATE (Phase 1) */}
       {!showDemo && !showMnemonic && (
-        <div className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-xl shadow-lg border border-cyan-500/30 animate-in fade-in duration-500">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-cyan-400 font-display tracking-wider">Thoth's Notebook</h1>
-            <p className="text-gray-400">Enter the archives of wisdom</p>
-          </div>
+        <div className="w-full max-w-md animate-in fade-in duration-500">
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-            {/* ... Scribe's Name Input ... */}
-            <div>
-              <label className="text-sm font-bold text-gray-400 block">Scribe's Name</label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="e.g., Sesh of Thoth"
-                className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-cyan-400 focus:outline-none"
-              />
+          {/* ── RETURNING SCRIBE (Sign In) ── */}
+          {mode === 'signin' && (
+            <div className="p-8 space-y-6 bg-gray-800 rounded-xl shadow-lg border border-cyan-500/30">
+              <div className="text-center space-y-1">
+                <h1 className="text-4xl font-bold text-cyan-400 font-display tracking-wider">Thoth's Notebook</h1>
+                <p className="text-gray-400 text-sm">Enter the archives of wisdom</p>
+              </div>
+
+              <form className="space-y-5" onSubmit={handleSignIn}>
+                <div>
+                  <label className="text-sm font-bold text-gray-400 block">Sacred Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-400 block">Secret Glyphs (Password)</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+
+                {error && <p className="text-sm text-red-400 text-center bg-red-900/30 p-2 rounded-md italic">{error}</p>}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 text-lg font-bold text-gray-900 bg-cyan-400 rounded-md hover:bg-cyan-300 disabled:bg-gray-600 tracking-wider"
+                >
+                  {isLoading ? 'Unsealing Archives...' : 'Enter the Archive'}
+                </button>
+              </form>
+
+              <p className="text-center text-xs text-gray-600">
+                Forgot your password?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setMode('recover'); setError(null); }}
+                  className="text-amber-500 hover:text-amber-300 transition-colors underline"
+                >
+                  Restore with recovery phrase
+                </button>
+              </p>
+
+              <div className="pt-2 border-t border-gray-700 text-center">
+                <p className="text-sm text-gray-500 mb-3">New to Thoth's Notebook?</p>
+                <button
+                  onClick={() => { setMode('signup'); setError(null); }}
+                  className="w-full px-4 py-2 text-sm font-bold text-amber-400 border border-amber-500/40 rounded-md hover:bg-amber-500/10 transition-colors tracking-wider uppercase"
+                >
+                  ✦ Begin Your Initiation
+                </button>
+              </div>
             </div>
+          )}
 
-            {/* ... Email Input ... */}
-            <div>
-              <label className="text-sm font-bold text-gray-400 block">Sacred Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-cyan-400 focus:outline-none"
-              />
+          {/* ── NEW SCRIBE (Sign Up) ── */}
+          {mode === 'signup' && (
+            <div className="p-8 space-y-6 bg-gray-800 rounded-xl shadow-lg border border-amber-500/30">
+              <div className="text-center space-y-1">
+                <h1 className="text-4xl font-bold text-amber-400 font-display tracking-wider">New Scribe</h1>
+                <p className="text-gray-400 text-sm">Forge your master key and enter the temple</p>
+              </div>
+
+              <form className="space-y-5" onSubmit={handleSignUp}>
+                <div>
+                  <label className="text-sm font-bold text-gray-400 block">
+                    Scribe's Name <span className="text-gray-600 font-normal text-xs">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="e.g., Sesh of Thoth"
+                    className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-amber-400 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-gray-600 mt-1">You can set or change this anytime in the Scribe Dossier.</p>
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-400 block">Sacred Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-400 block">Secret Glyphs (Password)</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+
+                {error && <p className="text-sm text-red-400 text-center bg-red-900/30 p-2 rounded-md italic">{error}</p>}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 text-lg font-bold text-gray-900 bg-amber-400 rounded-md hover:bg-amber-300 disabled:bg-gray-600 tracking-wider"
+                >
+                  {isLoading ? 'Forging Master Key...' : 'Become a Scribe'}
+                </button>
+              </form>
+
+              <div className="pt-2 border-t border-gray-700 text-center">
+                <button
+                  onClick={() => { setMode('signin'); setError(null); }}
+                  className="text-sm text-cyan-500 hover:text-cyan-300 transition-colors"
+                >
+                  ← Already a Scribe? Sign in
+                </button>
+              </div>
             </div>
+          )}
 
-            {/* ... Password Input ... */}
-            <div>
-              <label className="text-sm font-bold text-gray-400 block">Secret Glyphs (Password)</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-cyan-400 focus:outline-none"
-              />
+          {/* ── RECOVER (Password Reset) ── */}
+          {mode === 'recover' && (
+            <div className="p-8 space-y-6 bg-gray-800 rounded-xl shadow-lg border border-amber-500/30">
+              <div className="text-center space-y-1">
+                <h1 className="text-3xl font-bold text-amber-400 font-display tracking-wider">Reset Password</h1>
+                <p className="text-gray-400 text-sm">We&apos;ll send a reset link to your email</p>
+              </div>
+
+              {recoverySent ? (
+                <div className="space-y-4 text-center">
+                  <p className="text-lime-400 text-sm bg-lime-950/30 border border-lime-500/30 rounded-lg p-4">
+                    ✓ Reset email sent. Check your inbox — and your <span className="font-bold">spam/junk folder</span> — for a message from noreply@thoths-notebook.firebaseapp.com.
+                  </p>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    After resetting your login password, sign in and you&apos;ll be prompted to enter your
+                    <span className="text-amber-400"> 24 recovery words</span> to restore your encryption key.
+                  </p>
+                  <button
+                    onClick={() => { setMode('signin'); setRecoverySent(false); setError(null); }}
+                    className="text-sm text-cyan-500 hover:text-cyan-300 transition-colors"
+                  >
+                    ← Back to sign in
+                  </button>
+                </div>
+              ) : (
+                <form className="space-y-5" onSubmit={handleRecoverWithPhrase}>
+                  <div>
+                    <label className="text-sm font-bold text-gray-400 block">Sacred Email</label>
+                    <input
+                      type="email"
+                      value={recoveryEmail}
+                      onChange={(e) => setRecoveryEmail(e.target.value)}
+                      placeholder="The email on your account"
+                      autoFocus
+                      className="w-full px-4 py-2 mt-2 text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:border-amber-400 focus:outline-none"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    After resetting your login password, sign back in — you&apos;ll be prompted to enter your
+                    <span className="text-amber-400"> 24 recovery words</span> to restore your encryption key.
+                  </p>
+
+                  {error && <p className="text-sm text-red-400 text-center bg-red-900/30 p-2 rounded-md italic">{error}</p>}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || !recoveryEmail}
+                    className="w-full px-4 py-3 text-lg font-bold text-gray-900 bg-amber-400 rounded-md hover:bg-amber-300 disabled:bg-gray-600 tracking-wider"
+                  >
+                    {isLoading ? 'Sending...' : 'Send Reset Email'}
+                  </button>
+
+                  <div className="pt-2 border-t border-gray-700 text-center">
+                    <button
+                      type="button"
+                      onClick={() => { setMode('signin'); setError(null); }}
+                      className="text-sm text-cyan-500 hover:text-cyan-300 transition-colors"
+                    >
+                      ← Back to sign in
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
-
-            {error && <p className="text-sm text-red-400 text-center bg-red-900/30 p-2 rounded-md italic">{error}</p>}
-
-            <div className="flex flex-col space-y-4">
-              <button onClick={handleSignUp} disabled={isLoading} className="w-full px-4 py-2 text-lg font-bold text-gray-900 bg-cyan-400 rounded-md hover:bg-cyan-300 disabled:bg-gray-600">
-                {isLoading ? 'Forging Master Key...' : 'Become a Scribe (Sign Up)'}
-              </button>
-              <button onClick={handleSignIn} disabled={isLoading} className="w-full px-4 py-2 text-lg font-bold text-cyan-400 border border-cyan-400 rounded-md hover:bg-cyan-400/10">
-                Enter the Archive (Sign In)
-              </button>
-            </div>
-          </form>
+          )}
         </div>
       )}
 
@@ -282,7 +437,7 @@ setWords(mnemonic.split(' '));
       <div className="space-y-6 animate-in fade-in duration-700">
         <div className="p-4 bg-red-900/20 border border-red-900/40 rounded-lg text-center">
           <p className="text-xs text-gray-300">
-            A Key was created for you and you alone. <span className="text-white font-bold underline">YOU are responsible for this key!</span> Thoth's Notebook cannot recreate it. You will now be taken to a screen with 12 words - you MUST write these down on a piece of paper. It will be the ONLY way to recover your data if you forget your password.
+            A Key was created for you and you alone. <span className="text-white font-bold underline">YOU are responsible for this key!</span> Thoth's Notebook cannot recreate it. You will now be taken to a screen with 24 words — you MUST write these down on a piece of paper. They are the ONLY way to recover your data if you forget your password.
           </p>
         </div>
         <button
@@ -307,7 +462,7 @@ setWords(mnemonic.split(' '));
       </h2>
       <div className="p-4 bg-amber-950/20 border border-amber-500/30 rounded-xl">
         <p className="text-gray-300 text-xs italic leading-relaxed">
-          "These 12 glyphs are the <span className="text-amber-500 font-bold">Only Key</span> to your archive. They never touch our servers. If you lose them, your secrets remain in the void forever."
+          "These 24 glyphs are the <span className="text-amber-500 font-bold">Only Key</span> to your archive. They never touch our servers. If you lose them, your secrets remain in the void forever."
         </p>
       </div>
     </div>
@@ -338,7 +493,7 @@ setWords(mnemonic.split(' '));
            <DuamatefHead className="w-12 h-12 text-red-500 brightness-125" />
         </div>
         <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest leading-tight">
-          Ma'at requires your witness. Do not screenshot - unless you want to. That's fine. Carve them into stone or paper. After you press the button, you will be taken to the Crypto-Obelisk of Istanbul. Set a PIN there and use the Stash at the top of the vault to give yourself a hint as to the where abouts of your 12 sacred words, such as "In the Family Bible at Micah 6:8"
+          Ma'at requires your witness. Do not screenshot - unless you want to. That's fine. Carve them into stone or paper. After you press the button, you will be taken to the Crypto-Obelisk of Istanbul. Set a PIN there and use the Stash at the top of the vault to give yourself a hint as to the whereabouts of your 24 sacred words, such as "In the Family Bible at Micah 6:8"
         </p>
       </div>
 
