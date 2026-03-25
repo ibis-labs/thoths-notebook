@@ -13,6 +13,7 @@ import { ChronicleThreshold } from "./components/chronicle-threshold";
 import { MaatAttestation } from "./components/maat-attestation";
 import { GratitudeBreath } from "./components/gratitude-breath";
 import { ChronicleSealingForm } from "./components/chronicle-sealing-form";
+import { StreakCelebration } from "./components/streak-celebration";
 
 interface Task {
   id: string;
@@ -35,6 +36,19 @@ export default function EveningChroniclePage() {
   const [decryptedTasks, setDecryptedTasks] = useState<Task[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0); // 🏺 Moved inside component
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sealResult, setSealResult] = useState<{
+    overallStreak: number;
+    history10Day: number[];
+    ritualSummaries: Array<{
+      id: string;
+      title: string;
+      currentStreak: number;
+      totalCompletions: number;
+      history10: number[];
+      isWin: boolean;
+    }>;
+    completedCount: number;
+  } | null>(null);
 
   const [formState, setFormState] = useState({
   winsNote: "",       // 🏺 Changed from 'wins'
@@ -208,7 +222,44 @@ completedTasks.forEach(t => batch.delete(doc(db, "tasks", t.id)));
 const ritualsToPurge = incompleteRituals.filter(t => t.isRitual || t.category === "Daily Ritual");
 ritualsToPurge.forEach(t => batch.delete(doc(db, "tasks", t.id)));
       await batch.commit();
-      router.push("/archives");
+
+      // Build celebration data from what we just wrote
+      const ritualsRef2 = collection(db, "dailyRituals");
+      const ritualsQuery2 = query(ritualsRef2, where("userId", "==", user.uid));
+      const ritualsSnap2 = await getDocs(ritualsQuery2);
+      const completedRitualIdSet = new Set(
+        completedTasks.filter(t => t.originRitualId).map(t => t.originRitualId!)
+      );
+      const ritualSummaries = await Promise.all(ritualsSnap2.docs.map(async d => {
+        const rData = d.data();
+        const s = rData.streakData || { currentStreak: 0, totalCompletions: 0, history10: [0,0,0,0,0,0,0,0,0,0] };
+        const isWin = completedRitualIdSet.has(d.id);
+        // Decrypt title if encrypted
+        let title = rData.title || "Ritual";
+        if (rData.isEncrypted && rData.iv && masterKey) {
+          try {
+            const { decryptData: dec, base64ToBuffer: b64 } = await import("@/lib/crypto");
+            const ivUint8 = new Uint8Array(b64(rData.iv));
+            title = await dec(masterKey, b64(rData.title), ivUint8);
+          } catch { /* leave ciphertext as fallback */ }
+        }
+        return {
+          id: d.id,
+          title,
+          currentStreak: isWin ? (s.currentStreak || 0) + 1 : (s.currentStreak || 0),
+          totalCompletions: (s.totalCompletions || 0) + (isWin ? 1 : 0),
+          history10: [...(s.history10 || [0,0,0,0,0,0,0,0,0,0]).slice(1), isWin ? 1 : 0],
+          isWin,
+        };
+      }));
+
+      setSealResult({
+        overallStreak: newStreak,
+        history10Day: history,
+        ritualSummaries,
+        completedCount: completedTasks.length,
+      });
+      setStep(5);
     } catch (err) {
       console.error("Seal broken:", err);
       setIsSubmitting(false);
@@ -236,6 +287,14 @@ ritualsToPurge.forEach(t => batch.delete(doc(db, "tasks", t.id)));
           onBack={() => setStep(3)}
           onMainHall={() => router.push("/")}
           displayStreak={currentStreak + 1}
+        />
+      )}
+      {step === 5 && sealResult && (
+        <StreakCelebration
+          overallStreak={sealResult.overallStreak}
+          history10Day={sealResult.history10Day}
+          ritualSummaries={sealResult.ritualSummaries}
+          completedCount={sealResult.completedCount}
         />
       )}
     </main>

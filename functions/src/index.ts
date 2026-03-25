@@ -87,11 +87,16 @@ export const automatedChronicle = onSchedule({
       const completedTitles: string[] = [];
       const incompleteRitualTitles: string[] = [];
       const tasksToDelete: admin.firestore.DocumentReference[] = [];
+      // Track which ritual template IDs were completed tonight
+      const completedOriginRitualIds = new Set<string>();
       tasksSnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.completed) {
           completedTitles.push(data.title);
           tasksToDelete.push(doc.ref);
+          if (data.originRitualId) {
+            completedOriginRitualIds.add(data.originRitualId);
+          }
         } else if (data.category === "Daily Ritual" || data.isRitual) {
           incompleteRitualTitles.push(data.title);
           tasksToDelete.push(doc.ref);
@@ -132,6 +137,38 @@ export const automatedChronicle = onSchedule({
           streakAtSeal: newStreak,
         });
       }
+      // 🏺 UPDATE PER-RITUAL STREAK DATA (mirrors client-side Khepri protocol)
+      const ritualsSnapshot = await db.collection("dailyRituals")
+        .where("userId", "==", userId)
+        .get();
+      ritualsSnapshot.forEach((ritualDoc) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rData: any = ritualDoc.data();
+        const s = rData.streakData || {
+          currentStreak: 0,
+          bestStreak: 0,
+          totalCompletions: 0,
+          history10: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        };
+        const isWin = completedOriginRitualIds.has(ritualDoc.id);
+        const newRitualStreak = isWin ? (s.currentStreak || 0) + 1 : 0;
+        const newHistory = [
+          ...(s.history10 || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).slice(1),
+          isWin ? 1 : 0,
+        ];
+        batch.update(ritualDoc.ref, {
+          "streakData.currentStreak": newRitualStreak,
+          "streakData.bestStreak": Math.max(
+            newRitualStreak,
+            s.bestStreak || 0,
+          ),
+          "streakData.totalCompletions": (s.totalCompletions || 0) +
+            (isWin ? 1 : 0),
+          "streakData.history10": newHistory,
+          "streakData.lastUpdated": dateString,
+        });
+      });
+
       tasksToDelete.forEach((ref) => batch.delete(ref));
       await batch.commit();
       console.log(`User ${userId} sealed for ${dateString}.`);
