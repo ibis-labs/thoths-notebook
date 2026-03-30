@@ -510,7 +510,7 @@ useEffect(() => {
                                 {!isSacred && (
                                     <BanishmentPortal
                                         onConfirm={() => onTaskDelete?.(task.id)}
-                                        ritualTitle={task.title}
+                                        ritualTitle={decryptedTask.title || task.title}
                                     >
                                         <div
                                             role="button"
