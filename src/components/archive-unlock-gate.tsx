@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -18,8 +18,9 @@ import {
 const BYPASS_PATHS = ["/login", "/IstanbulProtocol"];
 
 export function ArchiveUnlockGate() {
-  const { user, loading, masterKey, ritualInProgress, unlockArchives, setMasterKey } = useAuth();
+  const { user, loading, masterKey, ritualInProgress, unlockArchives, setMasterKey, signOut } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   const [hasCheckedFirestore, setHasCheckedFirestore] = useState(false);
   const [hasKeys, setHasKeys] = useState<boolean | null>(null); // null = not checked yet
@@ -109,6 +110,15 @@ export function ArchiveUnlockGate() {
     } finally {
       setIsWorking(false);
     }
+  };
+
+  const handleReturnToLogin = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Error signing out:", err);
+    }
+    router.push("/login");
   };
 
   const handleRestore = async (e: React.FormEvent) => {
@@ -258,6 +268,15 @@ export function ArchiveUnlockGate() {
                 >
                   ← Back to password
                 </button>
+
+                <button
+                  type="button"
+                  disabled={isWorking}
+                  onClick={handleReturnToLogin}
+                  className="w-full py-2 text-sm text-slate-600 hover:text-slate-400 transition-colors"
+                >
+                  ← Return to Login Screen
+                </button>
               </form>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -341,6 +360,15 @@ export function ArchiveUnlockGate() {
                 className="w-full py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
               >
                 Not now — enter without decryption
+              </button>
+
+              <button
+                type="button"
+                disabled={isWorking}
+                onClick={handleReturnToLogin}
+                className="w-full py-2 text-sm text-slate-600 hover:text-slate-400 transition-colors"
+              >
+                ← Return to Login Screen
               </button>
             </form>
             )}
