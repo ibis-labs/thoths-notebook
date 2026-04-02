@@ -26,7 +26,8 @@ import {
   Moon,
   Landmark,
   Calendar,
-  Package
+  Package,
+  StickyNote
 } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "@/components/auth-provider";
@@ -184,6 +185,13 @@ export function AppSidebar({ activeCategory, setActiveCategory }: AppSidebarProp
             <Link href="/evening-chronicle">
               <Moon className="w-4 h-4 mr-2 group-hover:animate-spin-slow transition-all duration-700" />
               <span className="font-bold tracking-wide">Evening Chronicle</span>
+            </Link>
+          </SidebarMenuButton>
+
+          <SidebarMenuButton asChild className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/50 group w-full justify-start pl-2">
+            <Link href="/ostraca">
+              <StickyNote className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+              <span className="font-bold tracking-wide">The Ostraca</span>
             </Link>
           </SidebarMenuButton>
         </div>

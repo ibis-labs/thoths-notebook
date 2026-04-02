@@ -63,3 +63,31 @@ export const INITIAL_STREAK_DATA: StreakData = {
 };
 
 export type FilterCategory = "All" | TaskCategory;
+
+// ─────────────────────────────────────────────────────────────
+// 🏺 THE OSTRACA — Ephemeral Scratchpad
+// ─────────────────────────────────────────────────────────────
+
+export type OstracaTileColor = 'amber' | 'cyan' | 'rose' | 'emerald' | 'purple';
+
+export type OstracaCollection = {
+  id: string;
+  userId: string;
+  name: string;
+  isVault: boolean;
+  color: OstracaTileColor;
+  createdAt: string;
+};
+
+export type OstracaTile = {
+  id: string;
+  userId: string;
+  collectionId: string;
+  title: string;
+  isVault: boolean;
+  isEncrypted: boolean;
+  iv?: string;               // base64 — shared IV for this tile
+  encryptedContent?: string; // base64 — encrypted with masterKey
+  createdAt: string;
+  updatedAt: string;
+};

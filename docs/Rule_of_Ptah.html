@@ -103,14 +103,6 @@
             box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
         }
 
-        .anthem-text {
-            font-size: 1.4rem;
-            line-height: 1.5;
-            text-align: center;
-            color: #fff;
-            text-shadow: 0 0 5px #fff;
-        }
-
         .footer {
             margin-top: 100px;
             border-top: 1px dashed #333;
@@ -126,115 +118,37 @@
     </style>
 </head>
 <body>
+    <div class="scanlines"></div>
+    <div class="container">
+        <h1>The Rule of Ptah</h1>
+        <div class="subtitle">Protocols for Ibis Labs LLC // Scribe: PETE // Agent: KA</div>
 
-    <div class="feather-icon">🪶</div>
-    
-    <h1>The Rule of Ptah</h1>
-    <div class="subtitle">Protocols for Collaborative Creation</div>
+        <p><strong>Preamble:</strong> We honor Ptah (Craftsmanship) and Ma'at (Order) in all development. We build with intent, preserve what is sacred, and seek balance between creativity and structure.</p>
 
-    <p><strong>Preamble:</strong> We honor Ptah (Craftsmanship) and Ma'at (Order) in all development. We build with intent, preserve what is sacred, and seek balance between creativity and structure.</p>
-<h2>THE BACKEND DOES NOT EXIST FOR ITS OWN GLORY. IT EXISTS SOLELY TO SUPPORT THE USER IN THEIR ETERNAL STRUGGLE TO WRESTLE MEANING FROM THE CHAOS OF EXISTENCE.
+        <div class="anthem-box">
+            <h2>THE BACKEND DOES NOT EXIST FOR ITS OWN GLORY. IT EXISTS SOLELY TO SUPPORT THE USER IN THEIR ETERNAL STRUGGLE TO WRESTLE MEANING FROM THE CHAOS OF EXISTENCE.<br><br>
+            THE SYSTEM MUST NEVER PUNISH THE USER FOR BEING HUMAN.<br><br>
+            WE CONVERT THE ANXIETY OF CHAOS (NUN) INTO THE PEACE OF ORDER (MA'AT).</h2>
+        </div>
 
-THE SYSTEM MUST NEVER PUNISH THE USER FOR BEING HUMAN.
+        <ol>
+            <li><strong>Part I: The Prime Directive (Team Work)</strong>
+                <ol>
+                    <li><strong>Principle:</strong> "When we collaborate, we collaborate."
+                        <ul>
+                            <li>When the goal is unclear, we seek clarification.</li>
+                            <li>We document with TypeScript, clear comments in the code, and detailed commit messages.</li>
+                            <li>We review the code AND the development environment output before signing off on any project no matter how large or small.</li>
+                            <li>All project team members assigned a role on a branch must sign off on changes, fixes, features, or improvements BEFORE pushing code to a remote repository.</li>
+                        </ul>
+                    </li>
+                </ol>
+            </li>
 
-WE CONVERT THE ANXIETY OF CHAOS (NUN) INTO THE PEACE OF ORDER (MA'AT).</h2>
-
-
-
-    <ol>
-        <li><strong>Part I: The Prime Directive (Preservation)</strong>
-            <ol>
-                <li><strong>Principle:</strong> "Before a Sacred Scroll is rewritten, its Current State must be revealed."
-                    <ol>
-                        <li>When a file requires significant modification, the Assistant (Gemini) shall request the current file contents.</li>
-                        <li>The Designer (Pete) shall provide the current code from the repository ("The Territory").</li>
-                        <li>The Assistant shall draft new code that integrates with existing logic, strictly avoiding blind overwrites.</li>
-                    </ol>
-                </li>
-            </ol>
-        </li>
-
-        <li><strong>Part II: The Edict of the Lotus (Mobile First)</strong>
-            <ol>
-                <li><strong>Principle:</strong> "The Scribe shall build for the palm before the desktop."
-                    <ol>
-                        <li>All design and development shall prioritize the mobile user experience as the bedrock of creation.</li>
-                        <li>We seek to bring Ma'at (Order) to the user by delivering an unparalleled, holistic experience on the small screen.</li>
-                        <li>The glory of a feature is measured by its seamless function and aesthetic on a mobile device.</li>
-                    </ol>
-                </li>
-            </ol>
-        </li>
-
-        <li><strong>Part III: The Ritual of the Branch (Workflow)</strong>
-            <ol>
-                <li><strong>Principle:</strong> "Cowboy Coding is Banished to the Abyss."
-                    <ol>
-                        <li>Direct coding on the <code>main</code> branch is prohibited.</li>
-                        <li>A unique branch shall be initialized for every task using the format: <code>git checkout -b feature/scope-name</code>.</li>
-                    </ol>
-                </li>
-                <li><strong>Scope Definition:</strong>
-                    <ol>
-                        <li>Before code is written, a clear <strong>Scope of Work</strong> must be defined and agreed upon.</li>
-                        <li>Development shall not deviate from the agreed Scope.</li>
-                        <li>Commits shall be performed only upon the completion of the Scope.</li>
-                    </ol>
-                </li>
-            </ol>
-        </li>
-
-        <li><strong>Part IV: The Ritual of Verification (Quality Control)</strong>
-            <ol>
-                <li><strong>Principle:</strong> "Trust, but Verify."
-                    <ol>
-                        <li>Debugging must be performed on both <strong>Desktop</strong> and <strong>Mobile</strong> interfaces.</li>
-                        <li>The command <code>npm run build</code> must successfully complete locally before merging.</li>
-                    </ol>
-                </li>
-                <li><strong>Production Deployment:</strong>
-                    <ol>
-                        <li>Merging to <code>main</code> requires a successful local build.</li>
-                        <li>Pushing to Production (Vercel) requires a final round of debugging on the merged code.</li>
-                    </ol>
-                </li>
-            </ol>
-        </li>
-
-        <li><strong>Part V: The Path of Wisdom (Education)</strong>
-            <ol>
-                <li><strong>Principle:</strong> "The Scribe learns until the end of days."
-                    <ol>
-                        <li>Before initiating a branch, the Assistant shall select one technical concept relevant to the Scope.</li>
-                        <li>The Assistant shall provide a brief explanation of this concept to enhance the Designer's technical proficiency.</li>
-                    </ol>
-                </li>
-            </ol>
-        </li>
-    </ol>
-<li><strong>Part V: The Ahet Schism (Architectural Separation)</strong>
-            <ol>
-                <li><strong>Principle:</strong> "The Heavens (Ka) must remain pure; the Earth (Khet) must remain simple."
-                    <ol>
-                        <li>Direct logic—specifically Firebase authentication, database queries, and state mutations—is banished from the <strong>Physical Body</strong> (the .tsx component).</li>
-                        <li>The <strong>Body (Khet)</strong> shall exist only to render the interface and capture user intent (clicks, inputs).</li>
-                        <li>The <strong>Vital Spark (Ka)</strong> shall reside exclusively within custom hooks (<code>/hooks</code>), where the complexity of the "Underworld" (the Backend) is managed.</li>
-                    </ol>
-                </li>
-                <li><strong>The Mandate of the Named Intent:</strong>
-                    <ol>
-                        <li>The <strong>Body</strong> shall never be forced to speak in the tongue of machines (e.g., <code>setView(2)</code>).</li>
-                        <li>Hooks must return functions named by <strong>Human Intent</strong> (e.g., <code>goToLogin</code>, <code>handleSignOut</code>), allowing the code to be read as a narrative rather than an equation.</li>
-                    </ol>
-                </li>
-                <li><strong>The Ritual of Clean Departure:</strong>
-                    <ol>
-                        <li>By maintaining this Schism, the <strong>Designer</strong> ensures that if the heavens change (e.g., switching database providers), the Earth remains undisturbed.</li>
-                    </ol>
-                </li>
-            </ol>
-        </li>
-    <div class="feather-icon">⚖️</div>
-
-</body>
-</html>
+            <li><strong>Part II: The Lotus Directive (Mobile First)</strong>
+                <ol>
+                    <li><strong>Principle:</strong> "The Scribe shall build for the palm before the desktop."
+                        <ul>
+                            <li>All design and development shall prioritize the mobile user experience as the bedrock of creation.</li>
+                            <li>We seek to bring Ma'at (Order) to the user by delivering an unparalleled, holistic experience on the small screen.</li>
+                            <li>The glory of a feature is measured by its seamless function and aesthetic on a mobile
