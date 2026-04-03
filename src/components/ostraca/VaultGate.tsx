@@ -31,6 +31,13 @@ export function VaultGate({ onUnlock }: VaultGateProps) {
 
   const userId = auth.currentUser?.uid;
 
+  // Haptic feedback on phase changes (mobile)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.navigator.vibrate) return;
+    if (phase === 'error')   window.navigator.vibrate([40, 30, 40, 30, 40]);
+    if (phase === 'granted') window.navigator.vibrate([15, 60, 15]);
+  }, [phase]);
+
   useEffect(() => {
     if (!userId) return;
     getDoc(doc(db, 'users', userId)).then(snap => {

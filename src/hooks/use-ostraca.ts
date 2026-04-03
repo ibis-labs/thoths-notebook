@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   collection, query, where, orderBy,
   onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc
@@ -8,11 +8,12 @@ import {
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/auth-provider';
 import { encryptData, decryptData, bufferToBase64, base64ToBuffer } from '@/lib/crypto';
-import type { OstracaTile, OstracaCollection } from '@/lib/types';
+import type { OstracaTile, OstracaCollection, ChecklistItem } from '@/lib/types';
 
 export function useOstraca() {
   const { user, masterKey } = useAuth();
   const [tiles, setTiles] = useState<OstracaTile[]>([]);
+  const ephemeraCreated = useRef(false);
   const [collections, setCollections] = useState<OstracaCollection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,6 +62,27 @@ export function useOstraca() {
     );
   }, [user]);
 
+  // ── Ensure Ephemera tile exists (runs once after tiles load) ──
+  useEffect(() => {
+    if (!user || loading || ephemeraCreated.current) return;
+    ephemeraCreated.current = true;
+    const hasEphemera = tiles.some(t => t.collectionId === '__ephemera__');
+    if (!hasEphemera) {
+      setDoc(doc(db, 'ostracaTiles', `ephemera_${user.uid}`), {
+        userId: user.uid,
+        collectionId: '__ephemera__',
+        title: 'Ephemera',
+        isVault: false,
+        isEncrypted: false,
+        content: '',
+        checklistItems: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading]);
+
   // ── Add collection ────────────────────────────────────────────
   const addCollection = useCallback(async (
     name: string,
@@ -89,34 +111,35 @@ export function useOstraca() {
     title: string,
     content: string,
     collectionId: string,
-    isVault: boolean
+    isVault: boolean,
+    checklistItems?: ChecklistItem[]
   ) => {
     if (!user) return;
+
+    const baseFields = {
+      userId: user.uid,
+      collectionId,
+      title,
+      isVault,
+      checklistItems: checklistItems ?? [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
     if (masterKey) {
       const { ciphertext, iv } = await encryptData(masterKey, content);
       await addDoc(collection(db, 'ostracaTiles'), {
-        userId: user.uid,
-        collectionId,
-        title,
-        isVault,
+        ...baseFields,
         isEncrypted: true,
         iv: bufferToBase64(iv.buffer as ArrayBuffer),
         encryptedContent: bufferToBase64(ciphertext),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       });
     } else {
-      // No masterKey yet — store unencrypted (will be sealed on next save with key)
+      // No masterKey yet — store unencrypted
       await addDoc(collection(db, 'ostracaTiles'), {
-        userId: user.uid,
-        collectionId,
-        title,
-        isVault,
+        ...baseFields,
         isEncrypted: false,
         content,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       });
     }
   }, [user, masterKey]);
@@ -126,10 +149,12 @@ export function useOstraca() {
     tileId: string,
     title: string,
     content: string,
-    existingIv?: string
+    existingIv?: string,
+    checklistItems?: ChecklistItem[]
   ) => {
     if (!user) return;
     const tileRef = doc(db, 'ostracaTiles', tileId);
+    const extraFields = checklistItems !== undefined ? { checklistItems } : {};
 
     if (masterKey) {
       const ivUint8 = existingIv ? new Uint8Array(base64ToBuffer(existingIv)) : undefined;
@@ -140,9 +165,34 @@ export function useOstraca() {
         iv: bufferToBase64(iv.buffer as ArrayBuffer),
         encryptedContent: bufferToBase64(ciphertext),
         updatedAt: new Date().toISOString(),
+        ...extraFields,
       });
     }
   }, [user, masterKey]);
+
+  // ── Update checklist items only (for in-card toggling) ────────
+  const updateChecklistItems = useCallback(async (
+    tileId: string,
+    items: ChecklistItem[]
+  ) => {
+    await updateDoc(doc(db, 'ostracaTiles', tileId), {
+      checklistItems: items,
+      updatedAt: new Date().toISOString(),
+    });
+  }, []);
+
+  // ── Update Ephemera (plain scratchpad + checklist) ────────────
+  const updateEphemera = useCallback(async (
+    scratchpad: string,
+    checklistItems: ChecklistItem[]
+  ) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'ostracaTiles', `ephemera_${user.uid}`), {
+      content: scratchpad,
+      checklistItems,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [user]);
 
   // ── Delete tile ───────────────────────────────────────────────
   const deleteTile = useCallback(async (tileId: string) => {
@@ -162,15 +212,22 @@ export function useOstraca() {
     }
   }, [masterKey]);
 
+  const ephemeraTile = tiles.find(t => t.collectionId === '__ephemera__') ?? null;
+  const regularTiles = tiles.filter(t => t.collectionId !== '__ephemera__');
+
   return {
-    tiles,
+    tiles: regularTiles,
+    ephemeraTile,
     collections,
     loading,
     addCollection,
     deleteCollection,
     addTile,
     updateTile,
+    updateChecklistItems,
+    updateEphemera,
     deleteTile,
     decryptTile,
   };
 }
+

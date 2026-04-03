@@ -5,14 +5,17 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Lock, Unlock, X, Check,
-  FolderPlus, BookOpen, Shield
+  FolderPlus, BookOpen, Shield, ListChecks, Square, CheckSquare2, Trash2
 } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { useOstraca } from '@/hooks/use-ostraca';
 import { OstracaTileCard } from '@/components/ostraca/OstracaTileCard';
 import { VaultGate } from '@/components/ostraca/VaultGate';
+import { EphemeraModal } from '@/components/ostraca/EphemeraModal';
+import { BanishmentPortal } from '@/components/banishment-portal';
 import { FirstPylonIcon } from '@/components/icons/FirstPylonIcon';
-import type { OstracaTile, OstracaCollection, OstracaTileColor } from '@/lib/types';
+import { DuamatefJar } from '@/components/icons/duamatef-jar';
+import type { OstracaTile, OstracaCollection, OstracaTileColor, ChecklistItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 // ─────────────────────────────────────────────────────────────
@@ -27,11 +30,19 @@ const COLORS: { value: OstracaTileColor; label: string; swatch: string }[] = [
 ];
 
 const TAB_ACTIVE: Record<OstracaTileColor, string> = {
-  amber:   'border-amber-400   text-amber-300   bg-amber-950/40   shadow-[0_0_20px_rgba(245,158,11,0.3)]',
-  cyan:    'border-cyan-400    text-cyan-300    bg-cyan-950/40    shadow-[0_0_20px_rgba(34,211,238,0.3)]',
-  rose:    'border-rose-400    text-rose-300    bg-rose-950/40    shadow-[0_0_20px_rgba(244,63,94,0.3)]',
-  emerald: 'border-emerald-400 text-emerald-300 bg-emerald-950/40 shadow-[0_0_20px_rgba(16,185,129,0.3)]',
-  purple:  'border-purple-400  text-purple-300  bg-purple-950/40  shadow-[0_0_20px_rgba(168,85,247,0.3)]',
+  amber:   'border-amber-400   text-amber-300   bg-amber-950/40   shadow-[0_0_18px_rgba(245,158,11,0.35)]   ring-1 ring-amber-400/40 ring-offset-1 ring-offset-black',
+  cyan:    'border-cyan-400    text-cyan-300    bg-cyan-950/40    shadow-[0_0_18px_rgba(34,211,238,0.35)]    ring-1 ring-cyan-400/40 ring-offset-1 ring-offset-black',
+  rose:    'border-rose-400    text-rose-300    bg-rose-950/40    shadow-[0_0_18px_rgba(244,63,94,0.35)]     ring-1 ring-rose-400/40 ring-offset-1 ring-offset-black',
+  emerald: 'border-emerald-400 text-emerald-300 bg-emerald-950/40 shadow-[0_0_18px_rgba(16,185,129,0.35)]   ring-1 ring-emerald-400/40 ring-offset-1 ring-offset-black',
+  purple:  'border-purple-400  text-purple-300  bg-purple-950/40  shadow-[0_0_18px_rgba(168,85,247,0.35)]   ring-1 ring-purple-400/40 ring-offset-1 ring-offset-black',
+};
+
+const TAB_INACTIVE: Record<OstracaTileColor, string> = {
+  amber:   'border-amber-500/55   text-amber-400/70   ring-1 ring-amber-500/20   ring-offset-1 ring-offset-black',
+  cyan:    'border-cyan-500/55    text-cyan-400/70    ring-1 ring-cyan-500/20    ring-offset-1 ring-offset-black',
+  rose:    'border-rose-500/55    text-rose-400/70    ring-1 ring-rose-500/20    ring-offset-1 ring-offset-black',
+  emerald: 'border-emerald-500/55 text-emerald-400/70 ring-1 ring-emerald-500/20 ring-offset-1 ring-offset-black',
+  purple:  'border-purple-500/55  text-purple-400/70  ring-1 ring-purple-500/20  ring-offset-1 ring-offset-black',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -155,39 +166,84 @@ interface TileDialogProps {
   initialContent?: string;
   collections: OstracaCollection[];
   defaultCollectionId?: string;
+  isVaultContext?: boolean;  // restrict everything to vault collections only
   isVaultUnlocked: boolean;
   onClose: () => void;
-  onSave: (title: string, content: string, collectionId: string) => void;
+  onSave: (title: string, content: string, collectionId: string, checklistItems: ChecklistItem[]) => void;
 }
+
+const ciUid = () => Math.random().toString(36).slice(2, 9);
+
 function TileDialog({
-  tile, initialContent, collections, defaultCollectionId,
+  tile, initialContent, collections, defaultCollectionId, isVaultContext,
   isVaultUnlocked, onClose, onSave
 }: TileDialogProps) {
+  // Vault is its own implicit collection — no Firestore collection doc needed
+  const poolCollections = isVaultContext
+    ? []
+    : collections.filter(c => !c.isVault || isVaultUnlocked);
+
   const [title,        setTitle]        = useState(tile?.title ?? '');
   const [content,      setContent]      = useState(initialContent ?? '');
   const [collectionId, setCollectionId] = useState(
-    tile?.collectionId ?? defaultCollectionId ?? collections[0]?.id ?? ''
+    isVaultContext ? '__vault__' : (tile?.collectionId ?? defaultCollectionId ?? poolCollections[0]?.id ?? '')
   );
 
-  const availableCollections = collections.filter(c => !c.isVault || isVaultUnlocked);
+  const hasExistingList = (tile?.checklistItems?.length ?? 0) > 0;
+  const [showChecklist,  setShowChecklist]  = useState(hasExistingList);
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(tile?.checklistItems ?? []);
+  const [newCiText,      setNewCiText]      = useState('');
 
-  // If collectionId is still empty after Firestore collections load, pick the first available one
+  // Auto-select first pool collection when empty (regular tiles only)
   useEffect(() => {
-    if (!collectionId && availableCollections.length > 0) {
-      setCollectionId(availableCollections[0].id);
+    if (isVaultContext) return;
+    if (!collectionId && poolCollections.length > 0) {
+      setCollectionId(poolCollections[0].id);
     }
-  }, [availableCollections.length, collectionId]);
+  }, [poolCollections.length, collectionId, isVaultContext]);
+
+  const headingColor = isVaultContext ? 'text-amber-400' : 'text-cyan-400';
+  const buttonColor  = isVaultContext
+    ? 'border-amber-500 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+    : 'border-cyan-500 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20';
+  const dividerColor = isVaultContext ? 'border-amber-900/30' : 'border-cyan-900/30';
+
+  const addCi = () => {
+    const text = newCiText.trim();
+    if (!text) return;
+    setChecklistItems(prev => [...prev, { id: ciUid(), text, checked: false }]);
+    setNewCiText('');
+  };
+
+  const toggleCi = (id: string) =>
+    setChecklistItems(prev => prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
+
+  const updateCiText = (id: string, text: string) =>
+    setChecklistItems(prev => prev.map(i => i.id === id ? { ...i, text } : i));
+
+  const deleteCi = (id: string) =>
+    setChecklistItems(prev => prev.filter(i => i.id !== id));
 
   return (
     <DialogOverlay onClose={onClose}>
-      <h2 className="text-2xl font-headline text-cyan-400 tracking-wider mb-1">
-        {tile ? 'Edit Ostracon' : 'New Ostracon'}
+      <h2 className={`text-2xl font-headline tracking-wider mb-1 ${headingColor}`}>
+        {tile ? 'Edit Ostracon' : isVaultContext ? 'New Vault Ostracon' : 'New Ostracon'}
       </h2>
       <p className="text-muted-foreground text-sm mb-6">
-        {tile ? 'Reseal with updated contents.' : 'Inscribe a new tile of knowledge.'}
+        {tile ? 'Reseal with updated contents.' : isVaultContext ? 'Inscribe an encrypted tile into the Vault.' : 'Inscribe a new tile of knowledge.'}
       </p>
 
-      <div className="space-y-4">
+      {/* Vault mode indicator — always shown when isVaultContext and adding new */}
+      {isVaultContext && !tile && (
+        <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-md border border-amber-500/30 bg-amber-950/20">
+          <Lock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+          <span className="text-xs font-mono text-amber-400 uppercase tracking-widest">
+            Vault &mdash; sealed with master key
+          </span>
+        </div>
+      )}
+
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
         <div>
           <h4 className="text-xs font-bold text-cyan-600 uppercase tracking-widest mb-2">Title</h4>
           <input
@@ -205,12 +261,95 @@ function TileDialog({
               value={content}
               onChange={e => setContent(e.target.value)}
               placeholder="Inscribe your thoughts on this shard..."
-              rows={6}
+              rows={4}
               className="w-full bg-transparent p-4 font-mono text-sm text-slate-300 leading-relaxed resize-none outline-none placeholder:text-slate-600"
             />
           </div>
         </div>
-        {!tile && availableCollections.length > 1 && (
+
+        {/* ── MAKE LIST ──────────────────────────────────────── */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowChecklist(v => !v)}
+            className={cn(
+              'flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors',
+              showChecklist ? 'text-cyan-400' : 'text-cyan-700 hover:text-cyan-500'
+            )}
+          >
+            <ListChecks className="w-3.5 h-3.5" />
+            {showChecklist ? 'Hide List' : 'Make List'}
+          </button>
+
+          <AnimatePresence>
+            {showChecklist && (
+              <motion.div
+                key="checklist"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.18 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-2 bg-slate-900/50 rounded-md border border-cyan-900/30 p-3 space-y-1.5">
+                  {checklistItems.length === 0 && (
+                    <p className="text-xs font-mono text-slate-700 italic mb-1">No items yet.</p>
+                  )}
+                  {checklistItems.map(item => (
+                    <div key={item.id} className="flex items-center gap-2 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleCi(item.id)}
+                        className="flex-shrink-0 text-cyan-600 hover:text-cyan-400 transition-colors"
+                      >
+                        {item.checked
+                          ? <CheckSquare2 className="w-3.5 h-3.5" />
+                          : <Square className="w-3.5 h-3.5 opacity-50" />
+                        }
+                      </button>
+                      <input
+                        value={item.text}
+                        onChange={e => updateCiText(item.id, e.target.value)}
+                        className={cn(
+                          'flex-1 bg-transparent font-mono text-xs outline-none border-b border-transparent focus:border-cyan-800 transition-colors py-0.5',
+                          item.checked ? 'text-slate-600 line-through' : 'text-slate-300'
+                        )}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => deleteCi(item.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-400 flex-shrink-0"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {/* Add item input */}
+                  <div className="flex items-center gap-2 pt-1.5 border-t border-cyan-900/20">
+                    <input
+                      value={newCiText}
+                      onChange={e => setNewCiText(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addCi()}
+                      placeholder="Add list item..."
+                      className="flex-1 bg-transparent font-mono text-xs text-slate-400 placeholder:text-slate-700 outline-none border-b border-cyan-900/20 focus:border-cyan-700 transition-colors py-0.5"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCi}
+                      disabled={!newCiText.trim()}
+                      className="text-cyan-700 hover:text-cyan-400 disabled:opacity-20 transition-colors flex-shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Collection picker — only when multiple choices exist and not in vault context */}
+        {!isVaultContext && !tile && poolCollections.length > 1 && (
           <div>
             <h4 className="text-xs font-bold text-cyan-600 uppercase tracking-widest mb-2">Collection</h4>
             <select
@@ -218,7 +357,7 @@ function TileDialog({
               onChange={e => setCollectionId(e.target.value)}
               className="cyber-input font-body text-sm w-full bg-black"
             >
-              {availableCollections.map(c => (
+              {poolCollections.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
@@ -226,14 +365,14 @@ function TileDialog({
         )}
       </div>
 
-      <div className="flex gap-3 mt-8 pt-4 border-t border-cyan-900/30">
+      <div className={`flex gap-3 mt-8 pt-4 border-t ${dividerColor}`}>
         <button onClick={onClose} className="cyber-input-white flex-1 text-sm font-body font-bold tracking-wider">
           Cancel
         </button>
         <button
           disabled={!title.trim() || !collectionId}
-          onClick={() => title.trim() && collectionId && onSave(title.trim(), content, collectionId)}
-          className="flex-1 py-2 px-4 rounded-md border-2 border-cyan-500 bg-cyan-500/10 text-cyan-300 font-body font-bold text-sm tracking-wider hover:bg-cyan-500/20 transition-all disabled:opacity-30"
+          onClick={() => title.trim() && collectionId && onSave(title.trim(), content, collectionId, checklistItems)}
+          className={`flex-1 py-2 px-4 rounded-md border-2 font-body font-bold text-sm tracking-wider transition-all disabled:opacity-30 ${buttonColor}`}
         >
           {tile ? 'Update Seal' : 'Inscribe'}
         </button>
@@ -243,46 +382,68 @@ function TileDialog({
 }
 
 // ─────────────────────────────────────────────────────────────
+// EPHEMERA PINNED CARD
+// ─────────────────────────────────────────────────────────────
+function EphemeraCard({ tile, onClick }: { tile: OstracaTile | null; onClick: () => void }) {
+  const items       = tile?.checklistItems ?? [];
+  const checked     = items.filter(i => i.checked).length;
+  const firstItem   = items.find(i => !i.checked);
+  const scratchpad  = tile?.content ?? '';
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full mb-6 p-4 rounded-xl border-2 border-amber-400 ring-1 ring-amber-500/40 ring-offset-1 ring-offset-black bg-gradient-to-r from-amber-950/20 via-slate-950/60 to-[#0a0f1e] shadow-[0_0_18px_rgba(245,158,11,0.35)] transition-[transform,filter] duration-75 text-left active:scale-[0.98] active:brightness-125"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="font-headline text-sm text-amber-400 tracking-[0.2em] uppercase">Ephemera</span>
+         
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {items.length > 0 && (
+            <span className="text-[10px] font-mono text-amber-700">
+              {checked}/{items.length}
+            </span>
+          )}
+          <span className="text-[10px] font-mono text-amber-600 uppercase tracking-wider">
+            open ›
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-2 text-xs font-mono text-slate-600 truncate">
+        {firstItem
+          ? `☐ ${firstItem.text}${items.length > 1 ? ` +${items.length - 1} more` : ''}`
+          : scratchpad
+            ? scratchpad.slice(0, 70) + (scratchpad.length > 70 ? '…' : '')
+            : <span className="italic">Click to open your permanent scratchpad…</span>
+        }
+      </div>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // COLLECTION TAB
 // ─────────────────────────────────────────────────────────────
 function CollectionTab({
-  coll, isActive, onClick, onDelete,
+  coll, isActive, onClick,
 }: {
   coll: OstracaCollection;
   isActive: boolean;
   onClick: () => void;
-  onDelete: () => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
   return (
-    <div className="relative group/tab">
-      <button
-        onClick={onClick}
-        className={cn(
-          'h-12 md:h-10 px-4 flex items-center gap-2 border font-body font-bold text-xs uppercase tracking-widest transition-all active:scale-95 bg-black',
-          isActive
-            ? TAB_ACTIVE[coll.color]
-            : 'border-cyan-400/40 text-cyan-400/60 hover:border-cyan-400 hover:text-cyan-400'
-        )}
-      >
-        <div className={cn(
-          'w-1.5 h-1.5 rounded-full flex-shrink-0 transition-all',
-          isActive ? 'bg-current shadow-[0_0_6px_currentColor]' : 'bg-current opacity-40'
-        )} />
-        {coll.name}
-      </button>
-      {isActive && (
-        <button
-          onClick={() => confirmDelete ? onDelete() : setConfirmDelete(true)}
-          onBlur={() => setConfirmDelete(false)}
-          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-slate-950 border border-slate-700 text-slate-500 hover:text-red-400 hover:border-red-500 flex items-center justify-center transition-all opacity-0 group-hover/tab:opacity-100 z-10"
-          title={confirmDelete ? 'Confirm delete' : 'Delete collection'}
-        >
-          {confirmDelete ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-        </button>
+    <button
+      onClick={onClick}
+      className={cn(
+        'h-12 md:h-10 px-4 flex items-center border-2 font-body font-bold text-xs uppercase tracking-widest rounded-lg bg-black transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150',
+        isActive ? TAB_ACTIVE[coll.color] : TAB_INACTIVE[coll.color]
       )}
-    </div>
+    >
+      {coll.name}
+    </button>
   );
 }
 
@@ -329,13 +490,14 @@ export default function OstracaPage() {
   const router = useRouter();
   const { user, masterKey } = useAuth();
 
-  const { tiles, collections, loading, addCollection, deleteCollection, addTile, updateTile, deleteTile } = useOstraca();
+  const { tiles, collections, loading, ephemeraTile, addCollection, deleteCollection, addTile, updateTile, updateChecklistItems, updateEphemera, deleteTile } = useOstraca();
 
   const [activeCollectionId, setActiveCollectionId] = useState<string | 'vault' | null>(null);
   const [isVaultUnlocked, setIsVaultUnlocked]       = useState(false);
   const [showVaultGate, setShowVaultGate]            = useState(false);
   const [showAddCollection, setShowAddCollection]    = useState(false);
   const [showTileDialog, setShowTileDialog]          = useState(false);
+  const [showEphemera, setShowEphemera]              = useState(false);
   const [editTarget, setEditTarget]                  = useState<{ tile: OstracaTile; content: string } | null>(null);
 
   // Auth redirect
@@ -362,16 +524,20 @@ export default function OstracaPage() {
     setShowAddCollection(false);
   };
 
-  const handleAddTile = async (title: string, content: string, collectionId: string) => {
-    const coll = collections.find(c => c.id === collectionId);
-    await addTile(title, content, collectionId, coll?.isVault ?? false);
+  const handleAddTile = async (title: string, content: string, collectionId: string, checklistItems: ChecklistItem[]) => {
+    const isVault = collectionId === '__vault__' || (collections.find(c => c.id === collectionId)?.isVault ?? false);
+    await addTile(title, content, collectionId, isVault, checklistItems);
     setShowTileDialog(false);
   };
 
-  const handleUpdateTile = async (title: string, content: string) => {
+  const handleUpdateTile = async (title: string, content: string, _colId: string, checklistItems: ChecklistItem[]) => {
     if (!editTarget) return;
-    await updateTile(editTarget.tile.id, title, content, editTarget.tile.iv);
+    await updateTile(editTarget.tile.id, title, content, editTarget.tile.iv, checklistItems);
     setEditTarget(null);
+  };
+
+  const handleSaveEphemera = async (scratchpad: string, checklistItems: ChecklistItem[]) => {
+    await updateEphemera(scratchpad, checklistItems);
   };
 
   const handleVaultClick = () => {
@@ -408,29 +574,11 @@ export default function OstracaPage() {
         <div className="flex items-center gap-3 pt-2">
           <button
             onClick={() => setShowAddCollection(true)}
-            className="flex items-center gap-2 px-4 py-2 border-2 border-cyan-800 text-cyan-400 rounded-lg hover:border-cyan-500 hover:bg-cyan-950/40 font-body font-bold text-sm tracking-wider transition-all"
+            className="flex items-center gap-2 px-4 py-2 border-2 border-cyan-500/60 text-cyan-400 rounded-lg font-body font-bold text-sm tracking-wider transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150"
           >
             <FolderPlus className="w-4 h-4" />
             <span className="hidden sm:block">New Collection</span>
           </button>
-          {activeCollectionId && activeCollectionId !== 'vault' && (
-            <button
-              onClick={() => setShowTileDialog(true)}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-emerald-600 text-emerald-400 rounded-lg hover:border-emerald-400 hover:bg-emerald-950/40 font-body font-bold text-sm tracking-wider transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:block">New Ostracon</span>
-            </button>
-          )}
-          {activeCollectionId === 'vault' && isVaultUnlocked && (
-            <button
-              onClick={() => setShowTileDialog(true)}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-amber-600 text-amber-400 rounded-lg hover:border-amber-400 hover:bg-amber-950/40 font-body font-bold text-sm tracking-wider transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:block">New Vault Ostracon</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -451,6 +599,9 @@ export default function OstracaPage() {
         </div>
       )}
 
+      {/* ── EPHEMERA PINNED TILE ─────────────────────────────── */}
+      <EphemeraCard tile={ephemeraTile} onClick={() => setShowEphemera(true)} />
+
       {/* ── COLLECTION TABS ─────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 mb-6">
         {publicCollections.map(coll => (
@@ -459,17 +610,16 @@ export default function OstracaPage() {
             coll={coll}
             isActive={activeCollectionId === coll.id}
             onClick={() => setActiveCollectionId(coll.id)}
-            onDelete={() => deleteCollection(coll.id)}
           />
         ))}
 
         <button
           onClick={handleVaultClick}
           className={cn(
-            'flex items-center gap-2 h-12 md:h-10 px-4 border font-body font-bold text-xs uppercase tracking-widest transition-all active:scale-95',
+            'flex items-center gap-2 h-12 md:h-10 px-4 border-2 font-body font-bold text-xs uppercase tracking-widest rounded-lg bg-black transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150',
             activeCollectionId === 'vault' && isVaultUnlocked
-              ? 'border-amber-400 text-amber-300 bg-amber-950/40 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-              : 'border-amber-500/40 text-amber-500/60 hover:border-amber-400 hover:text-amber-400 bg-black'
+              ? 'border-amber-400 text-amber-300 bg-amber-950/40 shadow-[0_0_18px_rgba(245,158,11,0.35)] ring-1 ring-amber-400/40 ring-offset-1 ring-offset-black'
+              : 'border-amber-500/55 text-amber-400/70 ring-1 ring-amber-500/20 ring-offset-1 ring-offset-black'
           )}
         >
           {isVaultUnlocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
@@ -479,22 +629,56 @@ export default function OstracaPage() {
 
       {/* ── SECTION HEADER ──────────────────────────────────── */}
       {activeColl && (
-        <div className="mb-6 border-b border-cyan-900/30 pb-2">
-          <h2 className="font-headline text-lg text-cyan-400 tracking-wider">{activeColl.name}</h2>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mt-0.5">
-            {visibleTiles.length} ostraca inscribed
-          </p>
+        <div className="mb-6 border-b border-cyan-900/30 pb-2 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-headline text-lg text-cyan-400 tracking-wider">{activeColl.name}</h2>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mt-0.5">
+              {visibleTiles.length} ostraca inscribed
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowTileDialog(true)}
+              className="flex items-center gap-1.5 px-3 h-[108px] border-2 border-emerald-500/60 text-emerald-400 rounded-lg font-body font-bold text-xs tracking-wider transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New Ostracon
+            </button>
+            <BanishmentPortal
+              onConfirm={() => deleteCollection(activeColl.id)}
+              ritualTitle={`"${activeColl.name}" Collection`}
+            >
+              <button
+                className="flex flex-col items-center justify-center gap-1 w-[108px] h-[108px] border-2 border-red-500 text-red-400 rounded-lg shadow-[0_0_12px_rgba(239,68,68,0.45)] transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150"
+                title="Banish collection"
+              >
+                <DuamatefJar className="w-14 h-14 brightness-150 saturate-150" />
+                <span className="font-body font-bold text-[9px] uppercase tracking-widest leading-none">Banish Collection</span>
+              </button>
+            </BanishmentPortal>
+          </div>
         </div>
       )}
       {activeCollectionId === 'vault' && (
-        <div className="mb-6 border-b border-amber-900/30 pb-2">
-          <h2 className="font-headline text-lg text-amber-400 tracking-wider flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            The Vault
-          </h2>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mt-0.5">
-            {visibleTiles.length} sealed ostraca
-          </p>
+        <div className="mb-6 border-b border-amber-900/30 pb-2 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-headline text-lg text-amber-400 tracking-wider flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              The Vault
+            </h2>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mt-0.5">
+              {visibleTiles.length} sealed ostraca
+            </p>
+          </div>
+          {isVaultUnlocked && (
+            <button
+              onClick={() => setShowTileDialog(true)}
+              className="flex items-center gap-1.5 px-3 py-2 border-2 border-amber-500/60 text-amber-400 rounded-lg font-body font-bold text-xs tracking-wider transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150 flex-shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New Vault Ostracon
+            </button>
+          )}
         </div>
       )}
 
@@ -539,6 +723,7 @@ export default function OstracaPage() {
                     color={coll?.color ?? 'cyan'}
                     onEdit={(t, content) => setEditTarget({ tile: t, content })}
                     onDelete={deleteTile}
+                    onSaveChecklist={updateChecklistItems}
                   />
                 );
               })}
@@ -575,10 +760,27 @@ export default function OstracaPage() {
             tile={editTarget?.tile}
             initialContent={editTarget?.content}
             collections={collections}
-            defaultCollectionId={defaultColId}
+            defaultCollectionId={activeCollectionId !== 'vault' ? defaultColId : undefined}
+            isVaultContext={activeCollectionId === 'vault' && !editTarget}
             isVaultUnlocked={isVaultUnlocked}
             onClose={() => { setShowTileDialog(false); setEditTarget(null); }}
             onSave={editTarget ? handleUpdateTile : handleAddTile}
+          />
+        )}
+        {showEphemera && ephemeraTile && (
+          <EphemeraModal
+            scratchpad={ephemeraTile.content ?? ''}
+            checklistItems={ephemeraTile.checklistItems ?? []}
+            onClose={() => setShowEphemera(false)}
+            onSave={handleSaveEphemera}
+          />
+        )}
+        {showEphemera && !ephemeraTile && (
+          <EphemeraModal
+            scratchpad=""
+            checklistItems={[]}
+            onClose={() => setShowEphemera(false)}
+            onSave={handleSaveEphemera}
           />
         )}
       </AnimatePresence>

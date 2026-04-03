@@ -79,15 +79,24 @@ export type OstracaCollection = {
   createdAt: string;
 };
 
+// A single checkbox entry on any Ostracon (or the Ephemera)
+export type ChecklistItem = {
+  id: string;
+  text: string;
+  checked: boolean;
+};
+
 export type OstracaTile = {
   id: string;
   userId: string;
-  collectionId: string;
+  collectionId: string;  // '__ephemera__' for the permanent Ephemera tile
   title: string;
   isVault: boolean;
   isEncrypted: boolean;
   iv?: string;               // base64 — shared IV for this tile
   encryptedContent?: string; // base64 — encrypted with masterKey
+  content?: string;          // plain text (unencrypted tiles / ephemera scratchpad)
+  checklistItems?: ChecklistItem[]; // stored plain (not encrypted)
   createdAt: string;
   updatedAt: string;
 };
