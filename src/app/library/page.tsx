@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { OstraconIconLarge } from "@/components/icons/ostracon-icon-large";
 import { Button } from "@/components/ui/button";
+import { FirstPylonIcon } from "@/components/icons/FirstPylonIcon";
 import { 
-  ArrowLeft, 
   Sparkles, 
   Hammer,
   Construction
@@ -29,16 +29,15 @@ export default function LibraryPage() {
       
       {/* 🏛️ HEADER */}
       <div className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur-xl border-b border-rose-500/30 px-6 py-8 flex items-center justify-between shadow-[0_4px_30px_rgba(244,63,94,0.1)]">
-        <Button 
+        <button
           onClick={() => router.push("/")}
-          variant="ghost"
-          className="text-rose-400 border border-rose-500/30 hover:bg-rose-500/10 transition-all"
+          className="flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-rose-400 bg-rose-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(244,63,94,0.4)] min-w-[110px]"
         >
-          <ArrowLeft size={20} />
-          <span className="font-headline text-[10px] tracking-[0.2em] uppercase">
-      Return to Main Hall
-    </span>
-        </Button>
+          <FirstPylonIcon size={60} className="text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.8)]" />
+          <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-rose-300 mt-1">
+            To Main Hall
+          </span>
+        </button>
         
         <h1 className="font-display font-bold text-2xl text-rose-400 tracking-[0.3em] uppercase drop-shadow-[0_0_12px_rgba(244,63,94,0.7)]">
           Grand Library
