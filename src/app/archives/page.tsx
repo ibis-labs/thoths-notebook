@@ -11,6 +11,7 @@ import { useAuth } from "@/components/auth-provider";
 import { decryptData, base64ToBuffer } from "@/lib/crypto";
 // 🏺 Manifesting the Pylon
 import { FirstPylonIcon } from "@/components/icons/FirstPylonIcon";
+import { OstraconIconLarge } from "@/components/icons/ostracon-icon-large";
 
 export default function ArchivesPage() {
   const router = useRouter();
@@ -124,8 +125,14 @@ export default function ArchivesPage() {
     <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent mt-2" />
   </div>
 
-  {/* 🕯️ RIGHT: Balance Spacer (Invisible) */}
-  <div className="w-[85px] hidden sm:block" />
+  {/* 🕯️ RIGHT: The Ostraca Button */}
+  <button
+    onClick={() => router.push('/ostraca')}
+    className="flex flex-col items-center justify-center p-0.1 rounded-2xl border-2 border-emerald-400 bg-emerald-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] min-w-[115px]"
+  >
+    <OstraconIconLarge className="w-20 h-20 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+    <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-emerald-300 mt-1">OSTRACA</span>
+  </button>
 </div>
 
       {/* Hall Content */}

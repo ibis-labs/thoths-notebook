@@ -26,9 +26,9 @@ import {
   Moon,
   Landmark,
   Calendar,
-  Package,
-  StickyNote
+  Package
 } from "lucide-react";
+import { OstraconIcon } from "@/components/icons/ostracon-icon";
 import Link from 'next/link';
 import { useAuth } from "@/components/auth-provider";
 import { auth } from '@/lib/firebase';
@@ -190,7 +190,7 @@ export function AppSidebar({ activeCategory, setActiveCategory }: AppSidebarProp
 
           <SidebarMenuButton asChild className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/50 group w-full justify-start pl-2">
             <Link href="/ostraca">
-              <StickyNote className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+              <OstraconIcon className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
               <span className="font-bold tracking-wide">The Ostraca</span>
             </Link>
           </SidebarMenuButton>

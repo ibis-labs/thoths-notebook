@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Task, Subtask } from '@/lib/types';
+import { Task, Subtask, OstracaTileColor } from '@/lib/types';
+import { useOstracaCollections } from '@/hooks/use-ostraca-collections';
 import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -45,6 +46,7 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
 
   const { masterKey } = useAuth();
   const { toast } = useToast();
+  const { collections, addCollection } = useOstracaCollections();
 
   const [title, setTitle] = useState(task.title);
   const [details, setDetails] = useState(task.details || '');
@@ -53,6 +55,11 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
   const [subtasks, setSubtasks] = useState<Subtask[]>(task.subtasks || []);
   const [newSubtaskText, setNewSubtaskText] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [linkEnabled, setLinkEnabled] = useState(!!(task.linkedCollectionId));
+  const [linkedCollectionId, setLinkedCollectionId] = useState<string>(task.linkedCollectionId || '');
+  const [showNewColl, setShowNewColl] = useState(false);
+  const [newCollName, setNewCollName] = useState('');
+  const [newCollColor, setNewCollColor] = useState<OstracaTileColor>('cyan');
 
   useEffect(() => {
     if (open) {
@@ -63,6 +70,9 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
         setSubtasks(task.subtasks || []);
         setEstimatedTime(task.estimatedTime?.toString() || '');
         setImportance(task.importance);
+        setLinkEnabled(!!(task.linkedCollectionId));
+        setLinkedCollectionId(task.linkedCollectionId || '');
+        setShowNewColl(false);
         if (task.dueDate) {
           try {
             const dateObj = (task.dueDate as any).toDate ? (task.dueDate as any).toDate() : new Date(task.dueDate);
@@ -153,6 +163,7 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
       let payload: any = {
         importance,
         estimatedTime: parseInt(estimatedTime) || 0,
+        linkedCollectionId: linkEnabled ? linkedCollectionId || null : null,
         ...(canEditDate && { dueDate: dueDate ? new Date(dueDate) : null })
       };
 
@@ -287,6 +298,72 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
             </div>
           )}
 
+
+          {/* OSTRACA LINK */}
+          <div className="border border-cyan-900/40 rounded-lg p-3 space-y-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={linkEnabled}
+                onChange={e => { setLinkEnabled(e.target.checked); setShowNewColl(false); setLinkedCollectionId(''); }}
+                className="w-4 h-4 accent-cyan-400"
+              />
+              <span className="text-xs font-body text-cyan-400 uppercase tracking-widest">Link to Ostraca Collection</span>
+            </label>
+            {linkEnabled && (
+              <div className="space-y-2">
+                <select
+                  value={showNewColl ? '__new__' : linkedCollectionId}
+                  onChange={e => {
+                    if (e.target.value === '__new__') { setShowNewColl(true); setLinkedCollectionId(''); }
+                    else { setShowNewColl(false); setLinkedCollectionId(e.target.value); }
+                  }}
+                  className="w-full bg-slate-950 border border-cyan-900/60 text-slate-300 text-sm rounded px-2 py-1.5 font-body"
+                >
+                  <option value="">— Select a collection —</option>
+                  {collections.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                  <option value="__new__">+ Create New Collection</option>
+                </select>
+                {showNewColl && (
+                  <div className="space-y-2 pl-1">
+                    <input
+                      type="text"
+                      placeholder="Collection name"
+                      value={newCollName}
+                      onChange={e => setNewCollName(e.target.value)}
+                      className="w-full bg-slate-950 border border-cyan-900/60 text-slate-200 text-sm rounded px-2 py-1.5 font-body placeholder:text-slate-600"
+                    />
+                    <div className="flex gap-1.5 items-center">
+                      {(['cyan','amber','emerald','rose','purple'] as OstracaTileColor[]).map(col => (
+                        <button
+                          key={col}
+                          type="button"
+                          onClick={() => setNewCollColor(col)}
+                          className={`w-6 h-6 rounded-full border-2 transition-all ${
+                            newCollColor === col ? 'border-white scale-125' : 'border-transparent opacity-60'
+                          }`}
+                          style={{ backgroundColor: { cyan:'#22d3ee', amber:'#f59e0b', emerald:'#10b981', rose:'#f43f5e', purple:'#a855f7' }[col] }}
+                        />
+                      ))}
+                      <button
+                        type="button"
+                        disabled={!newCollName.trim()}
+                        onClick={async () => {
+                          const id = await addCollection(newCollName.trim(), newCollColor);
+                          if (id) { setLinkedCollectionId(id); setShowNewColl(false); setNewCollName(''); }
+                        }}
+                        className="ml-auto px-2 py-0.5 text-xs font-bold text-emerald-400 border border-emerald-700 rounded disabled:opacity-30"
+                      >
+                        Create
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="grid gap-2">
             <Label htmlFor="details" className="text-cyan-400">Details / Notes</Label>

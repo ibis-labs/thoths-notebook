@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Lock, Unlock, X, Check,
@@ -14,6 +14,7 @@ import { VaultGate } from '@/components/ostraca/VaultGate';
 import { EphemeraModal } from '@/components/ostraca/EphemeraModal';
 import { BanishmentPortal } from '@/components/banishment-portal';
 import { FirstPylonIcon } from '@/components/icons/FirstPylonIcon';
+import { OstraconIconLarge } from '@/components/icons/ostracon-icon-large';
 import { DuamatefJar } from '@/components/icons/duamatef-jar';
 import type { OstracaTile, OstracaCollection, OstracaTileColor, ChecklistItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -488,6 +489,7 @@ function EmptyState({ isVault, isLocked, onAdd }: {
 // ─────────────────────────────────────────────────────────────
 export default function OstracaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, masterKey } = useAuth();
 
   const { tiles, collections, loading, ephemeraTile, addCollection, deleteCollection, addTile, updateTile, updateChecklistItems, updateEphemera, deleteTile } = useOstraca();
@@ -507,7 +509,10 @@ export default function OstracaPage() {
 
   useEffect(() => {
     if (collections.length > 0 && activeCollectionId === null) {
-      const first = collections.find(c => !c.isVault);
+      const requested = searchParams.get('collection');
+      const first = requested
+        ? collections.find(c => c.id === requested && !c.isVault) ?? collections.find(c => !c.isVault)
+        : collections.find(c => !c.isVault);
       if (first) setActiveCollectionId(first.id);
     }
   }, [collections, activeCollectionId]);
@@ -639,10 +644,10 @@ export default function OstracaPage() {
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setShowTileDialog(true)}
-              className="flex items-center gap-1.5 px-3 h-[108px] border-2 border-emerald-500/60 text-emerald-400 rounded-lg font-body font-bold text-xs tracking-wider transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150"
+              className="flex flex-col items-center justify-center w-[108px] h-[108px] border-2 border-emerald-400 bg-emerald-950/40 rounded-2xl active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)]"
             >
-              <Plus className="w-3.5 h-3.5" />
-              New Ostracon
+              <OstraconIconLarge className="w-20 h-20 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+              <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-emerald-300 mt-1">+ New Ostracon</span>
             </button>
             <BanishmentPortal
               onConfirm={() => deleteCollection(activeColl.id)}

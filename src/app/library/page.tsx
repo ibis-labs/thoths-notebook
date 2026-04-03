@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { OstraconIconLarge } from "@/components/icons/ostracon-icon-large";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft, 
@@ -44,7 +45,13 @@ export default function LibraryPage() {
         </h1>
 
         <div className="w-10 flex justify-end">
-           <Sparkles className="text-rose-300 animate-pulse" size={24} />
+          <button
+            onClick={() => router.push('/ostraca')}
+            className="flex flex-col items-center justify-center p-0.1 rounded-2xl border-2 border-emerald-400 bg-emerald-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] min-w-[115px]"
+          >
+            <OstraconIconLarge className="w-20 h-20 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+            <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-emerald-300 mt-1">OSTRACA</span>
+          </button>
         </div>
       </div>
 

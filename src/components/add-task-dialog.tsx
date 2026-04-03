@@ -9,6 +9,7 @@ import { format } from "date-fns";
 
 // --- NEW IMPORTS FOR THE FIRST BREATH ---
 import { useAuth } from "@/components/auth-provider";
+import { useOstracaCollections } from "@/hooks/use-ostraca-collections";
 // ----------------------------------------
 // --- NEW IMPORT FOR TASK CATEGORY LABELS
 import { CATEGORY_LABELS } from "@/lib/types";
@@ -43,7 +44,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Task, TaskCategory, TaskImportance, Subtask } from "@/lib/types";
+import { Task, TaskCategory, TaskImportance, Subtask, OstracaTileColor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -90,9 +91,15 @@ type AddTaskDialogProps = {
 export function AddTaskDialog({ onTaskAdd }: AddTaskDialogProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth(); // Need User ID for direct database writes
+  const { user } = useAuth();
+  const { collections, addCollection } = useOstracaCollections();
   const [subtaskText, setSubtaskText] = useState("");
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [linkEnabled, setLinkEnabled] = useState(false);
+  const [linkedCollectionId, setLinkedCollectionId] = useState<string>('');
+  const [showNewColl, setShowNewColl] = useState(false);
+  const [newCollName, setNewCollName] = useState('');
+  const [newCollColor, setNewCollColor] = useState<OstracaTileColor>('cyan');;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -133,6 +140,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         ...values,
         subtasks,
         userId: user.uid,
+        linkedCollectionId: linkEnabled ? linkedCollectionId || null : null,
       };
 
       // Call the unified handler for ALL task types
@@ -142,6 +150,10 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
 
       form.reset();
       setSubtasks([]);
+      setLinkEnabled(false);
+      setLinkedCollectionId('');
+      setShowNewColl(false);
+      setNewCollName('');
       setOpen(false);
     } catch (error) {
       console.error("Error in onSubmit:", error);
@@ -361,6 +373,72 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                 </FormItem>
               )}
             />
+
+            {/* OSTRACA LINK */}
+            <div className="border border-cyan-900/40 rounded-lg p-3 space-y-3">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={linkEnabled}
+                  onChange={e => { setLinkEnabled(e.target.checked); setShowNewColl(false); setLinkedCollectionId(''); }}
+                  className="w-4 h-4 accent-cyan-400"
+                />
+                <span className="text-xs font-body text-cyan-400 uppercase tracking-widest">Link to Ostraca Collection</span>
+              </label>
+              {linkEnabled && (
+                <div className="space-y-2">
+                  <select
+                    value={showNewColl ? '__new__' : linkedCollectionId}
+                    onChange={e => {
+                      if (e.target.value === '__new__') { setShowNewColl(true); setLinkedCollectionId(''); }
+                      else { setShowNewColl(false); setLinkedCollectionId(e.target.value); }
+                    }}
+                    className="w-full bg-slate-950 border border-cyan-900/60 text-slate-300 text-sm rounded px-2 py-1.5 font-body"
+                  >
+                    <option value="">— Select a collection —</option>
+                    {collections.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                    <option value="__new__">+ Create New Collection</option>
+                  </select>
+                  {showNewColl && (
+                    <div className="space-y-2 pl-1">
+                      <input
+                        type="text"
+                        placeholder="Collection name"
+                        value={newCollName}
+                        onChange={e => setNewCollName(e.target.value)}
+                        className="w-full bg-slate-950 border border-cyan-900/60 text-slate-200 text-sm rounded px-2 py-1.5 font-body placeholder:text-slate-600"
+                      />
+                      <div className="flex gap-1.5">
+                        {(['cyan','amber','emerald','rose','purple'] as OstracaTileColor[]).map(col => (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => setNewCollColor(col)}
+                            className={`w-6 h-6 rounded-full border-2 transition-all ${
+                              newCollColor === col ? 'border-white scale-125' : 'border-transparent opacity-60'
+                            }`}
+                            style={{ backgroundColor: { cyan:'#22d3ee', amber:'#f59e0b', emerald:'#10b981', rose:'#f43f5e', purple:'#a855f7' }[col] }}
+                          />
+                        ))}
+                        <button
+                          type="button"
+                          disabled={!newCollName.trim()}
+                          onClick={async () => {
+                            const id = await addCollection(newCollName.trim(), newCollColor);
+                            if (id) { setLinkedCollectionId(id); setShowNewColl(false); setNewCollName(''); }
+                          }}
+                          className="ml-auto px-2 py-0.5 text-xs font-bold text-emerald-400 border border-emerald-700 rounded disabled:opacity-30"
+                        >
+                          Create
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             <DialogFooter>
               {/* CYBER STYLE FOR SUBMIT BUTTON */}

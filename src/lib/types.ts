@@ -51,7 +51,10 @@ export type Task = {
 
   // --- THE PROPHECY ADDITION ---
   // Added here so 'useTasks' can safely map it
-  streakData?: StreakData | null; 
+  streakData?: StreakData | null;
+
+  // --- OSTRACA LINK ---
+  linkedCollectionId?: string | null;
 };
 
 export const INITIAL_STREAK_DATA: StreakData = {

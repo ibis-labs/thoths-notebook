@@ -12,6 +12,8 @@ import { Badge } from './ui/badge';
 import { EditTaskDialog } from './edit-task-dialog';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
+import { useOstracaCollections } from '@/hooks/use-ostraca-collections';
 import { motion } from 'framer-motion';
 import { CyberStylus } from '@/components/icons/cyber-stylus';
 import { CyberAnkh } from '@/components/icons/cyber-ankh';
@@ -41,6 +43,11 @@ export function TaskCard({
     const [isEditOpen, setIsEditOpen] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
     const { masterKey } = useAuth();
+    const router = useRouter();
+    const { collections } = useOstracaCollections();
+    const linkedCollection = task.linkedCollectionId
+        ? collections.find(c => c.id === task.linkedCollectionId)
+        : null;
     const [decryptedTask, setDecryptedTask] = useState(task);
     // --- LOGIC ---
     const isPtah = (task as any).tags?.includes('Gift of Ptah');
@@ -394,6 +401,16 @@ useEffect(() => {
                         </div>
 
                         <div className="grid gap-6">
+                            {/* OSTRACA LINK */}
+                            {linkedCollection && (
+                                <button
+                                    onClick={() => { setIsDialogOpen(false); router.push(`/ostraca?collection=${linkedCollection.id}`); }}
+                                    className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border-2 border-cyan-500/50 bg-cyan-950/20 text-cyan-400 text-sm font-body font-bold tracking-wider transition-[transform,filter] duration-75 active:scale-[0.98] active:brightness-150"
+                                >
+                                    <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                                    <span>Go To: <span className="text-cyan-300">{linkedCollection.name}</span></span>
+                                </button>
+                            )}
                             <div className="space-y-2">
                                 <h4 className="text-xs font-bold text-cyan-600 uppercase tracking-widest">Scribe Notes</h4>
                                 <div className="bg-slate-900/50 p-4 rounded-md border border-cyan-900/30 min-h-[80px]">
