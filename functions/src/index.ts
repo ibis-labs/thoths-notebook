@@ -49,6 +49,7 @@ export const midnightScribe = onSchedule({
           dueDate: Timestamp.fromDate(today),
           isRitual: true,
           originRitualId: doc.id,
+          linkedCollectionId: ritual.linkedCollectionId || null,
         });
       });
       await batch.commit();
