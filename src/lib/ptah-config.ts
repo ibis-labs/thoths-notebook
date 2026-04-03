@@ -1,33 +1,44 @@
 export const PTAH_CONFIG = {
-  version: "1.3.3", // Incremented for the Khepri & Library Restoration
-  title: "THE SCRIBE'S DOSSIER AND CHRONO-MERKHET INITIATION",
-  date: "January 02, 2026 A.D. - Year 5526 of the Old Kingdom",
-  type: "ACCOUNTING_TEMPORAL",
+  version: "1.5.0", // The Ostraca Initiation
+  title: "THE OSTRACA — SHARDS OF INFINITE RECORD",
+  date: "April 03, 2026 A.D. - Year 5526 of the Old Kingdom",
+  type: "KNOWLEDGE_INSCRIPTION",
 
-  intro: "The temple architecture has evolved. Your digital identity is now anchored in the Scribe Dossier. Tap your avatar in the sidebar footer to enter your personal sanctuary. Installation of the Thoth Chip is initiated through the dossier. Additional data on your journey will be collected as the Temple expands its reach.",
+  intro: "A new chamber has been unsealed within the Temple. The Ostraca — named for the ancient pottery shards upon which Egyptian scribes cast their most urgent and ephemeral thoughts — is now yours to wield. Inscribe tiles of knowledge, seal them in colour-coded collections, and lock your most sacred records behind a Vault of your own devising. The Permanent Scratchpad, the Ephemera, awaits your first inscription.",
 
   // The "What's New" Section
   changes: [
     {
-      icon: "T-Chip", 
-      title: "Thoth Chip Installation",
-      description: "Adding the Thoth Chip to your homescreen can now be initiated directly from the Scribe Dossier. Visit your Dossier to permanently seal this interface to your device for full-screen, focused access.",
+      icon: "Ostracon",
+      title: "The Ostraca Chamber",
+      description: "Navigate to the Ostraca in the sidebar. Here you may create Collections — named, colour-coded groupings (Amber, Cyan, Rose, Emerald, or Purple) — and fill them with Ostracon tiles: encrypted notes, scribe thought-fragments, and living checklists.",
     },
     {
-      icon: "Scroll", 
-      title: "The Chrono-Merkhet",
-      description: "It has long been the intention to expand the Invoke Khonsu time to chronometer function - for when the quantity of time is of unknown duration. Access this feature by tapping on the head of Khonsu four times.",
+      icon: "Lock",
+      title: "The Vault — PIN-Sealed Collection",
+      description: "When creating a Collection, you may designate it a Vault. Vault tiles are encrypted with your Master Key and the Collection itself is sealed behind a 4-digit PIN of your choosing. Your PIN is never stored — only its shadow remains in the temple records.",
     },
-    
+    {
+      icon: "Scroll",
+      title: "Ephemera — The Permanent Scratchpad",
+      description: "Every Scribe is granted an Ephemera: a single, permanent shard that exists outside all collections. It holds a freeform scratchpad and a living checklist — open, edit, and close it from the top of the Ostraca page at any time.",
+    },
+    {
+      icon: "CheckSquare",
+      title: "Living Checklists on Every Tile",
+      description: "Any Ostracon tile — vault or standard — may carry a checklist. Items can be toggled directly on the tile card without opening the editor. Progress is saved to the Temple in real time.",
+    },
   ],
 
   // The "How to Use" Section
   instructions: [
-    "1. ACCESS THE DOSSEIR: Tap your Scribe identity in the sidebar footer to enter the Inner Sanctum and view your current Rank and Temple Connection status.",
-    "2. ADD THOTH CHIP TO YOUR DEVICE: Within the Dossier, locate the Thoth Chip Altar. If your connection is 'Weak', tap 'Invoke Installation' to anchor the sanctuary to your home screen.",
-    "3. INITIATE CHRONO-MERKHET: To access the hidden Chrono-Merkhet (Stopwatch), perform the Four-Tap Ritual on the lunar head of Khonsu in the primary sanctuary.",
-    "4. CONTACT THE TEMPLE: As always -  prayers, inquiries, reports of peculiarities to: rites@unclepetelaboratories.net"
+    "1. ENTER THE OSTRACA: Tap the Ostraca glyph in the sidebar to open the new chamber.",
+    "2. CREATE A COLLECTION: Tap the '+' icon to name your collection, choose a colour, and decide whether it requires a Vault PIN.",
+    "3. INSCRIBE A TILE: Select a collection tab, then tap '+' to open the Tile dialog. Give your shard a title, scribe your notes, and optionally add a checklist.",
+    "4. UNLOCK THE VAULT: If you created a Vault Collection, tap 'Unlock Vault' when prompted. On first access, you will inscribe a new 4-digit seal; on subsequent visits, enter your seal to reveal its contents.",
+    "5. USE THE EPHEMERA: Tap the Ephemera card at the top of the page to open your personal scratchpad. Your notes and checklist there are permanent and always accessible.",
+    "6. CONTACT THE TEMPLE: Prayers, inquiries, and reports of peculiarities to: rites@unclepetelaboratories.net"
   ],
 
- devNote: "Refactored the installation heka into the use-PWA hook, decoupling the Thoth Chip from the viewport-sentinel to allow manual invocation within the Scribe Dossier. The Merkhet digits have been justified at scaleY(1.6) to ensure the weight of time is felt. By centralizing the Registry of Souls, we have prepared the ground for the Grand Library's final integration. Order is absolute."
+  devNote: "The Ostraca required a dual-hook architecture: useOstraca (full CRUD + encryption + ephemera seed logic) and useOstracaCollections (a lightweight read-only listener safe for dialog contexts). All Vault tile content is encrypted client-side using AES-GCM with the user's masterKey before it reaches Firestore. The Vault PIN is hashed with SHA-256 and never stored in plaintext. Colour theming is expressed as a discriminated union across five named colours, each carrying its own border, shadow, badge, label, and divider tokens. The OstraconIconLarge is a hand-traced SVG — a genuine fragment of the ancient record, rendered in circuit light. Let all things be inscribed upon the shard. The Temple does not forget."
 };
