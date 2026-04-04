@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { IstanbulDial } from "@/components/IstanbulDial"; 
 import { ObeliskGuardian } from "@/components/IstanbulProtocol/ObeliskGuardian";
 import IstanbulRitual from "@/components/IstanbulProtocol/IstanbulRitual";import { RecoveryPhrasePanel } from '@/components/recovery-phrase-panel';
+import { NehehCircuit } from "@/components/neheh-circuit";
 export default function ScribeDossierPage() {
   const { user } = useAuth();
   const { installChip, isInstalled, canInstall } = usePWA();
@@ -54,7 +55,7 @@ export default function ScribeDossierPage() {
   };
 
   const isDjehuty = user?.uid === "YOUR_SORCERER_UID";
-  const rank = isDjehuty ? "Sorcerer of Cyber Glyphs" : "Initiate Scribe of the First Hour";
+
 const [ritualState, setRitualState] = useState<'dossier' | 'ritual' | 'recovery'>('dossier');
   return (
     <div className="min-h-screen bg-black text-cyan-50 flex flex-col items-center pb-20 px-4 overflow-x-hidden">
@@ -115,10 +116,13 @@ const [ritualState, setRitualState] = useState<'dossier' | 'ritual' | 'recovery'
               </>
             )}
             <p className="mt-2 text-cyan-400 font-mono text-[9px] tracking-[0.2em] uppercase border border-cyan-900/30 px-3 py-1 rounded-full inline-block">
-              Rank: {rank}
+              {isDjehuty ? "Sorcerer of Cyber Glyphs" : "Neheh-Circuit Active ↓"}
             </p>
           </div>
         </div>
+
+        {/* 🏺 THE NEHEH-CIRCUIT */}
+        <NehehCircuit />
 
         {/* 🗿 THE RITUAL COURT (The Obelisk) */}
        <div className="w-full max-w-md space-y-4 relative z-10 flex flex-col items-center">

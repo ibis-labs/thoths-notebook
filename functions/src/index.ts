@@ -138,37 +138,42 @@ export const automatedChronicle = onSchedule({
           streakAtSeal: newStreak,
         });
       }
-      // 🏺 UPDATE PER-RITUAL STREAK DATA (mirrors client-side Khepri protocol)
-      const ritualsSnapshot = await db.collection("dailyRituals")
-        .where("userId", "==", userId)
-        .get();
-      ritualsSnapshot.forEach((ritualDoc) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rData: any = ritualDoc.data();
-        const s = rData.streakData || {
-          currentStreak: 0,
-          bestStreak: 0,
-          totalCompletions: 0,
-          history10: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        };
-        const isWin = completedOriginRitualIds.has(ritualDoc.id);
-        const newRitualStreak = isWin ? (s.currentStreak || 0) + 1 : 0;
-        const newHistory = [
-          ...(s.history10 || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).slice(1),
-          isWin ? 1 : 0,
-        ];
-        batch.update(ritualDoc.ref, {
-          "streakData.currentStreak": newRitualStreak,
-          "streakData.bestStreak": Math.max(
-            newRitualStreak,
-            s.bestStreak || 0,
-          ),
-          "streakData.totalCompletions": (s.totalCompletions || 0) +
-            (isWin ? 1 : 0),
-          "streakData.history10": newHistory,
-          "streakData.lastUpdated": dateString,
+      // 🏺 UPDATE PER-RITUAL STREAK DATA — only when this is a fresh automated seal.
+      // If the user manually sealed earlier tonight, the manual seal already wrote the
+      // correct per-ritual streaks and purged the completed tasks. Running again here
+      // would find zero completed tasks and incorrectly reset every streak to 0.
+      if (!alreadySealed) {
+        const ritualsSnapshot = await db.collection("dailyRituals")
+          .where("userId", "==", userId)
+          .get();
+        ritualsSnapshot.forEach((ritualDoc) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const rData: any = ritualDoc.data();
+          const s = rData.streakData || {
+            currentStreak: 0,
+            bestStreak: 0,
+            totalCompletions: 0,
+            history10: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          };
+          const isWin = completedOriginRitualIds.has(ritualDoc.id);
+          const newRitualStreak = isWin ? (s.currentStreak || 0) + 1 : 0;
+          const newHistory = [
+            ...(s.history10 || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).slice(1),
+            isWin ? 1 : 0,
+          ];
+          batch.update(ritualDoc.ref, {
+            "streakData.currentStreak": newRitualStreak,
+            "streakData.bestStreak": Math.max(
+              newRitualStreak,
+              s.bestStreak || 0,
+            ),
+            "streakData.totalCompletions": (s.totalCompletions || 0) +
+              (isWin ? 1 : 0),
+            "streakData.history10": newHistory,
+            "streakData.lastUpdated": dateString,
+          });
         });
-      });
+      }
 
       tasksToDelete.forEach((ref) => batch.delete(ref));
       await batch.commit();

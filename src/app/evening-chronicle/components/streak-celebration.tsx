@@ -20,6 +20,7 @@ interface StreakCelebrationProps {
   history10Day: number[];
   ritualSummaries: RitualStreakSummary[];
   completedCount: number;
+  oathStreak: number;
 }
 
 const PipRow = ({ history, delay = 0 }: { history: number[]; delay?: number }) => (
@@ -44,6 +45,7 @@ export function StreakCelebration({
   history10Day,
   ritualSummaries,
   completedCount,
+  oathStreak,
 }: StreakCelebrationProps) {
   const router = useRouter();
   const [show, setShow] = useState(false);
@@ -126,9 +128,32 @@ export function StreakCelebration({
           </p>
         </motion.div>
 
+        {/* Oath of Commitment streak */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.58 }}
+          className="border-2 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)] bg-black rounded-2xl p-4 space-y-1"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold tracking-widest uppercase text-amber-400">
+              Oath of Commitment
+            </span>
+            {oathStreak > 0 && (
+              <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
+                ☥ {oathStreak} day{oathStreak !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <p className="text-[9px] uppercase tracking-tighter text-muted-foreground">
+            {oathStreak > 0
+              ? `${oathStreak} consecutive day${oathStreak !== 1 ? "s" : ""} the Ankh has been raised`
+              : "Take the Morning Oath to begin your streak"}
+          </p>
+        </motion.div>
+
         {/* Per-ritual streaks */}
-        {ritualSummaries.length > 0 && (
-          <motion.div
+        {ritualSummaries.length > 0 && (          <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}

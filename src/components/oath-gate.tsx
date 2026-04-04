@@ -6,7 +6,8 @@ import { format, sub } from "date-fns";
 import { CyberAnkh } from "./icons/cyber-ankh";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
+import { applyDecay, getRankInfo } from "@/lib/neheh-circuit";
 import { useAuth } from "@/components/auth-provider";
 
 export function OathGate() {
@@ -82,10 +83,70 @@ useEffect(() => {
         tags: ["Foundation", "Oath"],
       });
 
-
-      // B. Seal the Gate for the day
-     // 👇 UPDATED: Seal the Gate using the EFFECTIVE date
+      // B. Update the Oath streak and Neheh-Circuit rank on the user's profile
       const effectiveToday = getEffectiveDate();
+      const getEffectiveYesterday = () => {
+        const virtualYesterday = sub(new Date(), { hours: 3, minutes: 5, days: 1 });
+        return format(virtualYesterday, "yyyy-MM-dd");
+      };
+
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const lastOathDate      = userData?.stats?.lastOathDate       || "";
+        const currentOathStreak = userData?.stats?.oathCurrentStreak  || 0;
+        const bestOathStreak    = userData?.stats?.oathBestStreak     || 0;
+
+        // Consecutive oath streak (resets to 0 on any missed day)
+        const newOathStreak = lastOathDate === getEffectiveYesterday()
+          ? currentOathStreak + 1
+          : 1;
+
+        // ── Neheh-Circuit rank day ────────────────────────────────────────────
+        // Bootstrap: if oathRankDay not yet stored, seed from currentStreak
+        const storedRankDay = userData?.stats?.oathRankDay
+          ?? Math.min(currentOathStreak, 360);
+
+        // Days missed since last oath (0 = consecutive)
+        const daysSinceLast = lastOathDate
+          ? Math.round(
+              (new Date(effectiveToday + 'T12:00:00').getTime() -
+               new Date(lastOathDate   + 'T12:00:00').getTime()) / 86400000
+            )
+          : 0;
+        const daysMissedForDecay = Math.max(0, daysSinceLast - 1);
+
+        const hasReached120 = bestOathStreak >= 120 || storedRankDay >= 120;
+        const decayedRankDay = applyDecay(storedRankDay, daysMissedForDecay, hasReached120);
+        const newRankDay     = Math.min(decayedRankDay + 1, 360);
+
+        // Detect major promotion (landing on a rank whose isMajor = true)
+        const newRankInfo = getRankInfo(newRankDay);
+        const isMajorPromotion = newRankInfo.isMajor && !!newRankInfo.missionDetails;
+
+        const statsUpdate: Record<string, unknown> = {
+          "stats.oathCurrentStreak": newOathStreak,
+          "stats.oathBestStreak":    Math.max(newOathStreak, bestOathStreak),
+          "stats.lastOathDate":      effectiveToday,
+          "stats.oathRankDay":       newRankDay,
+        };
+
+        if (isMajorPromotion) {
+          statsUpdate["pendingPromotion"] = {
+            title:          newRankInfo.title,
+            tier:           newRankInfo.tier,
+            day:            newRankDay,
+            description:    newRankInfo.description,
+            missionDetails: newRankInfo.missionDetails,
+            achievedAt:     new Date().toISOString(),
+          };
+        }
+
+        await updateDoc(userRef, statsUpdate);
+      }
+
+      // C. Seal the Gate for the day
       localStorage.setItem(`thoth_oath_${user.uid}_date`, effectiveToday);
 
       // C. Vanish

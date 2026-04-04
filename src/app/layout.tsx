@@ -8,6 +8,7 @@ import { PtahManager } from '@/components/ptah-manager';
 import { OathGate } from '@/components/oath-gate';
 import { ArchiveUnlockGate } from '@/components/archive-unlock-gate';
 import { PwaInstallPrompt } from '@/pwa-install-prompt';
+import { PromotionNotification } from '@/components/promotion-notification';
 
 // 1. Summon the fonts (Google Font Optimization)
 const quantico = Quantico({ 
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${quantico.variable} ${orbitron.variable} font-body antialiased bg-black text-foreground`}>
         <AuthProvider>
           <PtahManager />
+          <PromotionNotification />
           <ArchiveUnlockGate />
           <OathGate />
           <SidebarProvider>

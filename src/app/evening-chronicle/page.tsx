@@ -48,6 +48,7 @@ export default function EveningChroniclePage() {
       isWin: boolean;
     }>;
     completedCount: number;
+    oathStreak: number;
   } | null>(null);
 
   const [formState, setFormState] = useState({
@@ -127,6 +128,8 @@ export default function EveningChroniclePage() {
 
       let newStreak = (userData?.stats?.currentStreak || 0) + 1;
       let history = userData?.stats?.history10Day || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      // Capture the oath streak as it stands at seal time (set each morning by OathGate)
+      const oathStreak = userData?.stats?.oathCurrentStreak || 0;
       history.push(1);
       history = history.slice(-10);
 
@@ -223,17 +226,16 @@ const ritualsToPurge = incompleteRituals.filter(t => t.isRitual || t.category ==
 ritualsToPurge.forEach(t => batch.delete(doc(db, "tasks", t.id)));
       await batch.commit();
 
-      // Build celebration data from what we just wrote
-      const ritualsRef2 = collection(db, "dailyRituals");
-      const ritualsQuery2 = query(ritualsRef2, where("userId", "==", user.uid));
-      const ritualsSnap2 = await getDocs(ritualsQuery2);
-      const completedRitualIdSet = new Set(
-        completedTasks.filter(t => t.originRitualId).map(t => t.originRitualId!)
-      );
-      const ritualSummaries = await Promise.all(ritualsSnap2.docs.map(async d => {
+      // Build celebration data from the same pre-commit snapshot & computed values
+      // that were written to Firestore — no second read needed, no double-count.
+      const ritualSummaries = await Promise.all(ritualsSnap.docs.map(async d => {
         const rData = d.data();
-        const s = rData.streakData || { currentStreak: 0, totalCompletions: 0, history10: [0,0,0,0,0,0,0,0,0,0] };
-        const isWin = completedRitualIdSet.has(d.id);
+        const s = rData.streakData || { currentStreak: 0, bestStreak: 0, totalCompletions: 0, history10: [0,0,0,0,0,0,0,0,0,0] };
+        const isWin = completedRitualIds.includes(d.id);
+        // Mirror the exact calculation used in the batch update above
+        const computedStreak = isWin ? (s.currentStreak || 0) + 1 : 0;
+        const computedHistory = [...(s.history10 || [0,0,0,0,0,0,0,0,0,0]).slice(1), isWin ? 1 : 0];
+        const computedTotal = (s.totalCompletions || 0) + (isWin ? 1 : 0);
         // Decrypt title if encrypted
         let title = rData.title || "Ritual";
         if (rData.isEncrypted && rData.iv && masterKey) {
@@ -246,9 +248,9 @@ ritualsToPurge.forEach(t => batch.delete(doc(db, "tasks", t.id)));
         return {
           id: d.id,
           title,
-          currentStreak: isWin ? (s.currentStreak || 0) + 1 : (s.currentStreak || 0),
-          totalCompletions: (s.totalCompletions || 0) + (isWin ? 1 : 0),
-          history10: [...(s.history10 || [0,0,0,0,0,0,0,0,0,0]).slice(1), isWin ? 1 : 0],
+          currentStreak: computedStreak,
+          totalCompletions: computedTotal,
+          history10: computedHistory,
           isWin,
         };
       }));
@@ -258,6 +260,7 @@ ritualsToPurge.forEach(t => batch.delete(doc(db, "tasks", t.id)));
         history10Day: history,
         ritualSummaries,
         completedCount: completedTasks.length,
+        oathStreak,
       });
       setStep(5);
     } catch (err) {
@@ -295,6 +298,7 @@ ritualsToPurge.forEach(t => batch.delete(doc(db, "tasks", t.id)));
           history10Day={sealResult.history10Day}
           ritualSummaries={sealResult.ritualSummaries}
           completedCount={sealResult.completedCount}
+          oathStreak={sealResult.oathStreak}
         />
       )}
     </main>
