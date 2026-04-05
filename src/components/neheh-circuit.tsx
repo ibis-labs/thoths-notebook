@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/auth-provider";
-import { ShenRing } from "@/components/icons/shen-ring";
+import { NehehCircuitSvg, type IndicatorState } from "@/components/icons/neheh-circuit-svg";
 import {
   getRankInfo,
   getNextMilestone,
@@ -36,6 +36,26 @@ function getEffectiveToday(): string {
     return yesterday.toISOString().split('T')[0];
   }
   return now.toISOString().split('T')[0];
+}
+
+// Build the 10 decan-bar indicator states from current streak data.
+// Slot 0 = 9 days ago, slot 9 = today.
+function buildDecanStates(
+  currentStreak: number,
+  oathTakenToday: boolean,
+  daysSinceLast: number,
+): IndicatorState[] {
+  return Array.from({ length: 10 }, (_, slot) => {
+    const daysAgo = 9 - slot;
+    if (oathTakenToday) {
+      if (daysAgo < currentStreak) return "active";
+    } else {
+      if (daysAgo === 0) return "unlit";
+      if (daysAgo < daysSinceLast) return "missed";
+      if (daysAgo >= daysSinceLast && daysAgo < daysSinceLast + currentStreak) return "active";
+    }
+    return "unlit";
+  }) as IndicatorState[];
 }
 
 export function NehehCircuit() {
@@ -87,6 +107,15 @@ export function NehehCircuit() {
   const nextMile    = getNextMilestone(displayRankDay);
   const isMaxRank   = displayRankDay >= 360;
 
+  // ── Circuit indicator states ──
+  const decanStates      = buildDecanStates(stats.currentStreak, oathTakenToday, daysSinceLast);
+  const decansCompleted  = Math.min(7, Math.floor(displayRankDay / 10));
+  const irisStates       = Array.from({ length: 7 }, (_, i) =>
+    (i < decansCompleted ? "active" : "unlit") as IndicatorState
+  );
+  const outerRingState:     IndicatorState = displayRankDay >= 120 ? "active" : "unlit";
+  const outermostRingState: IndicatorState = displayRankDay >= 360 ? "active" : "unlit";
+
   return (
     <div
       className={cn(
@@ -111,9 +140,15 @@ export function NehehCircuit() {
         </p>
       </div>
 
-      {/* ── Shen Ring ── */}
+      {/* ── Neheh-Circuit SVG ── */}
       <div className="relative z-10 flex justify-center">
-        <ShenRing effectiveDay={displayRankDay} size={180} />
+        <NehehCircuitSvg
+          decanStates={decanStates}
+          irisStates={irisStates}
+          outerRingState={outerRingState}
+          outermostRingState={outermostRingState}
+          size={220}
+        />
       </div>
 
       {/* ── Rank Title ── */}
