@@ -55,6 +55,9 @@ export type Task = {
 
   // --- OSTRACA LINK ---
   linkedCollectionId?: string | null;
+
+  // --- NEHEH-CIRCUIT PROMOTION ---
+  accentColor?: string;
 };
 
 export const INITIAL_STREAK_DATA: StreakData = {

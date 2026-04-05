@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useBannerPriority } from "@/components/global-banners";
 import { doc, onSnapshot, updateDoc, addDoc, collection, serverTimestamp, deleteField } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/auth-provider";
@@ -32,6 +33,7 @@ export function PromotionNotification() {
   const { user } = useAuth();
   const [promotion, setPromotion] = useState<PendingPromotion | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
+  const { setPromotionActive } = useBannerPriority();
 
   // Listen to the user doc for a pendingPromotion field
   useEffect(() => {
@@ -40,11 +42,17 @@ export function PromotionNotification() {
     const unsub = onSnapshot(userRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        setPromotion(data?.pendingPromotion ?? null);
+        const pending = data?.pendingPromotion ?? null;
+        setPromotion(pending);
+        // Tell GlobalBanners whether to suppress PtahManager
+        setPromotionActive(!!pending);
       }
     });
-    return () => unsub();
-  }, [user]);
+    return () => {
+      unsub();
+      setPromotionActive(false);
+    };
+  }, [user, setPromotionActive]);
 
   if (!user || !promotion) return null;
 
@@ -66,6 +74,7 @@ export function PromotionNotification() {
         createdAt: serverTimestamp(),
         dueDate: new Date(),
         tags: ["Neheh-Circuit", "Promotion", promotion.tier],
+        accentColor: colors.ring,
       });
 
       // Clear the pending promotion from the user doc
@@ -148,9 +157,19 @@ export function PromotionNotification() {
           {isAccepting ? "Inscribing Mission..." : "Accept Promotion"}
         </Button>
 
-        <p className="text-[8px] text-slate-600 font-mono tracking-widest uppercase">
-          Accepting inscribes a Special Mission with your rank instructions
-        </p>
+        <div className="space-y-1.5 text-center pt-1">
+          <p className="text-[8px] text-slate-500 font-mono tracking-widest uppercase">
+            Accepting inscribes a Special Mission with your rank instructions
+          </p>
+          <p className="text-[8px] font-mono leading-relaxed max-w-xs mx-auto" style={{ color: colors.ring, opacity: 0.7 }}>
+            ✦ Check your Special Missions task list for your promotion scroll
+          </p>
+          <p className="text-[8px] text-slate-600 font-mono leading-relaxed max-w-xs mx-auto">
+            Track your Neheh-Circuit progress in the{" "}
+            <span className="text-cyan-500">Scribe&apos;s Dossier</span>
+            {" "}— tap your avatar in the sidebar
+          </p>
+        </div>
       </div>
     </div>
   );

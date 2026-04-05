@@ -53,6 +53,7 @@ export function TaskCard({
     const isPtah = (task as any).tags?.includes('Gift of Ptah');
     const isPink = task.id.charCodeAt(task.id.length - 1) % 2 !== 0;
     const isChronicle = (task as any).category === "Chronicle";
+    const accentColor = (task as any).accentColor as string | undefined;
 
     // A task is sacred if it's a template (isRitual) or a clone (originRitualId)
     const isSacred = task.isRitual || !!(task as any).originRitualId;
@@ -294,7 +295,15 @@ useEffect(() => {
     }, [task.title, task.isEncrypted, task.iv, masterKey]);
     return (
         <>
-            <div ref={cardRef} className={containerClasses} onClick={handleDetailsClick}>
+            <div ref={cardRef} className={containerClasses} onClick={handleDetailsClick}
+              style={accentColor && !task.completed ? {
+                borderLeftColor: accentColor,
+                borderTopColor: `${accentColor}80`,
+                borderRightColor: `${accentColor}80`,
+                borderBottomColor: `${accentColor}80`,
+                boxShadow: `0 0 20px ${accentColor}40`,
+              } : undefined}
+            >
                 {!task.completed && (
                     <div className="pointer-events-none absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 mix-blend-overlay"></div>
                 )}

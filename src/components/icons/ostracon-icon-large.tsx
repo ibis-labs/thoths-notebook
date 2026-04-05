@@ -7,7 +7,7 @@ interface OstraconIconLargeProps {
 export function OstraconIconLarge({ className }: OstraconIconLargeProps) {
   return (
     <svg
-      viewBox="15 130 195 140"
+      viewBox="22 120 166 140"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
       className={cn("w-full h-full", className)}

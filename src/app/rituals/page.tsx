@@ -85,13 +85,13 @@ export default function ManageRitualsPage() {
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
             <div className="w-full flex justify-between mb-6">
-                <button onClick={() => router.push('/ostraca')} className="flex flex-col items-center justify-center p-0.1 rounded-2xl border-2 border-emerald-400 bg-emerald-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] min-w-[115px]">
+                <button onClick={() => router.push('/ostraca')} className="flex flex-col items-center justify-center p-0.1 rounded-2xl border-2 border-emerald-400 bg-emerald-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] min-w-[105px]">
                     <OstraconIconLarge className="w-20 h-20 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
-                    <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-emerald-300 mt-1">OSTRACA</span>
+                    <span className="font-headline font-bold text-[10px] tracking-widest uppercase text-emerald-300">OSTRACA</span>
                 </button>
                 <button onClick={handleReturn} className="flex flex-col items-center justify-center border-2 border-cyan-400 bg-cyan-950/40 rounded-2xl p-2">
-                    <FirstPylonIcon size={60} className="text-cyan-400" />
-                    <span className="text-[8px] uppercase text-cyan-300">To Main Hall</span>
+                    <FirstPylonIcon size={90} className="text-cyan-400" />
+                    <span className="font-headline font-bold text-[10px] uppercase text-cyan-300">To Main Hall</span>
                 </button>
             </div>
 

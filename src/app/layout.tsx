@@ -4,11 +4,10 @@ import './globals.css';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth-provider';
-import { PtahManager } from '@/components/ptah-manager';
+import { GlobalBanners } from '@/components/global-banners';
 import { OathGate } from '@/components/oath-gate';
 import { ArchiveUnlockGate } from '@/components/archive-unlock-gate';
 import { PwaInstallPrompt } from '@/pwa-install-prompt';
-import { PromotionNotification } from '@/components/promotion-notification';
 
 // 1. Summon the fonts (Google Font Optimization)
 const quantico = Quantico({ 
@@ -52,8 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="dark">
       <body className={`${quantico.variable} ${orbitron.variable} font-body antialiased bg-black text-foreground`}>
         <AuthProvider>
-          <PtahManager />
-          <PromotionNotification />
+          <GlobalBanners />
           <ArchiveUnlockGate />
           <OathGate />
           <SidebarProvider>
