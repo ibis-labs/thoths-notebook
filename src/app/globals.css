@@ -80,6 +80,22 @@ body {}
     0%, 100% { opacity: 1; filter: brightness(1.2) drop-shadow(0 0 15px rgba(251, 191, 36, 0.6)); }
     50% { opacity: 0.8; filter: brightness(0.8) drop-shadow(0 0 5px rgba(251, 191, 36, 0.2)); }
   }
+
+  /* 🔮 IPHTY NODE — fuchsia blinking orb for active channels */
+  .iphty-node-active {
+    animation: iphtyNodePulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes iphtyNodePulse {
+    0%, 100% {
+      opacity: 1;
+      filter: drop-shadow(0 0 1px rgba(232, 121, 249, 0.95));
+    }
+    50% {
+      opacity: 0.25;
+      filter: drop-shadow(0 0 0.3px rgba(232, 121, 249, 0.2));
+    }
+  }
   }
 
   /* The New Lunar Variant for Escape/Neutral actions */

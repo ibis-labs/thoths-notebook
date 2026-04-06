@@ -26,9 +26,10 @@ import {
   Moon,
   Landmark,
   Calendar,
-  Package
+  Package,
 } from "lucide-react";
 import { OstraconIcon } from "@/components/icons/ostracon-icon";
+import { IphtyLinkIcon } from "@/components/icons/IphtyLinkIcon";
 import Link from 'next/link';
 import { useAuth } from "@/components/auth-provider";
 import { auth } from '@/lib/firebase';
@@ -37,6 +38,7 @@ import { MoonPhaseIcon } from "./moon-phase-icon";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { KhonsuTimer } from "@/components/khonsu-timer";
 import { CATEGORY_LABELS } from "@/lib/types";
+import { useIphtyNodeActive } from "@/hooks/use-iphty-link";
 
 interface AppSidebarProps {
   activeCategory: string;
@@ -46,6 +48,7 @@ interface AppSidebarProps {
 export function AppSidebar({ activeCategory, setActiveCategory }: AppSidebarProps) {
   const { user } = useAuth();
   const { isMobile, setOpenMobile } = useSidebar();
+  const hasActiveIphtyChannels = useIphtyNodeActive();
 
   const handleSignOut = async () => {
     try {
@@ -192,6 +195,18 @@ export function AppSidebar({ activeCategory, setActiveCategory }: AppSidebarProp
             <Link href="/ostraca">
               <OstraconIcon className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
               <span className="font-bold tracking-wide">The Ostraca</span>
+            </Link>
+          </SidebarMenuButton>
+
+          <SidebarMenuButton asChild className="text-violet-400 hover:text-violet-300 hover:bg-violet-950/50 group w-full justify-start pl-2">
+            <Link href="/iphty-link">
+              <span className="shrink-0 mr-2 flex items-center">
+                <IphtyLinkIcon
+                  nodeActive={hasActiveIphtyChannels}
+                  className="h-4 w-auto group-hover:drop-shadow-[0_0_6px_rgba(139,92,246,0.8)] transition-all duration-300"
+                />
+              </span>
+              <span className="font-bold tracking-wide">Iphty Link</span>
             </Link>
           </SidebarMenuButton>
         </div>

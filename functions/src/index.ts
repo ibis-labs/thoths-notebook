@@ -34,10 +34,9 @@ export const midnightScribe = onSchedule({
           importance: ritual.importance || "medium",
           estimatedTime: ritual.estimatedTime || 15,
           details: ritual.details || "",
-          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
           subtasks: ritual.encryptedSubtasks ?
             [] :
-            (ritual.subtasks || []).map((st: any) => ({
+            (ritual.subtasks || []).map((st: Record<string, unknown>) => ({
               ...st,
               completed: false,
             })),
@@ -142,10 +141,11 @@ export const automatedChronicle = onSchedule({
           streakAtSeal: newStreak,
         });
       }
-      // 🏺 UPDATE PER-RITUAL STREAK DATA — only when this is a fresh automated seal.
-      // If the user manually sealed earlier tonight, the manual seal already wrote the
-      // correct per-ritual streaks and purged the completed tasks. Running again here
-      // would find zero completed tasks and incorrectly reset every streak to 0.
+      // 🏺 UPDATE PER-RITUAL STREAK DATA only for a fresh automated seal.
+      // If the user manually sealed earlier tonight, that seal already
+      // wrote correct per-ritual streaks and purged completed tasks.
+      // Running again here would find zero completed tasks and
+      // incorrectly reset every streak to 0.
       if (!alreadySealed) {
         const ritualsSnapshot = await db.collection("dailyRituals")
           .where("userId", "==", userId)
