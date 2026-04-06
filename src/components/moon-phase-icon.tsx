@@ -34,7 +34,7 @@ function getMoonPhase() {
   let daysSinceNew = (JD - KNOWN_NEW_MOON_JD) % SYNODIC_PERIOD;
   if (daysSinceNew < 0) daysSinceNew += SYNODIC_PERIOD;
 
-  const b = Math.round(daysSinceNew / SYNODIC_PERIOD * 8) % 8;
+  const b = Math.floor(daysSinceNew / SYNODIC_PERIOD * 8) % 8;
 
   const phases = [
     "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
