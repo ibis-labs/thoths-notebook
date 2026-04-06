@@ -46,14 +46,14 @@ function getMoonPhase() {
 
 // --- SVG Icon Components for Each Phase (Finalized Designs) ---
 // SVG viewBox is 0 0 24 24; circle center=(12,12), radius=10, so top=(12,2), bottom=(12,22).
-// Gibbous icons use a half-circle (left or right) plus a centered ellipse (rx=4,ry=10)
-// to create ~70% illumination, mirrored between waxing (right lit) and waning (left lit).
+// Gibbous icons use a single path: outer half-circle arc + inner ellipse arc (rx=4,ry=10)
+// to create ~70% illumination with no overlapping fills, mirrored for waxing/waning.
 const NewMoon = () => <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" />;
 const WaxingCrescent = () => <g transform="rotate(30 12 12)"><path d="M12 2 A10 10 0 1 1 12 22 A8 10 0 1 0 12 2 Z" fill="currentColor" /></g>;
 const FirstQuarter = () => <path d="M12 2 V22 A10 10 0 0 0 12 2 Z" fill="currentColor" />;
-const WaxingGibbous = () => <g><path d="M12 2 V22 A10 10 0 0 0 12 2 Z" fill="currentColor" /><ellipse cx="12" cy="12" rx="4" ry="10" fill="currentColor" /></g>;
+const WaxingGibbous = () => <path d="M12 2 A10 10 0 0 1 12 22 A4 10 0 0 0 12 2 Z" fill="currentColor" />;
 const FullMoon = () => <circle cx="12" cy="12" r="10" fill="currentColor" />;
-const WaningGibbous = () => <g><path d="M12 2 V22 A10 10 0 0 1 12 2 Z" fill="currentColor" /><ellipse cx="12" cy="12" rx="4" ry="10" fill="currentColor" /></g>;
+const WaningGibbous = () => <path d="M12 2 A10 10 0 0 0 12 22 A4 10 0 0 1 12 2 Z" fill="currentColor" />;
 const LastQuarter = () => <path d="M12 2 V22 A10 10 0 0 1 12 2 Z" fill="currentColor" />;
 const WaningCrescent = () => <g transform="rotate(-30 12 12)"><path d="M12 2 A10 10 0 1 0 12 22 A8 10 0 1 1 12 2 Z" fill="currentColor" /></g>;
 
