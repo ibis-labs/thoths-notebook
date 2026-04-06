@@ -113,9 +113,10 @@ export default function EveningChroniclePage() {
       const completedTasks = decryptedTasks.filter(t => t.completed);
       // Logic for Nun: rituals or overdue items
       const now = new Date();
-      const scribeDate = (now.getHours() < 2 || (now.getHours() === 2 && now.getMinutes() < 30))
-        ? new Date(now.setDate(now.getDate() - 1)).toISOString().split('T')[0]
-        : now.toISOString().split('T')[0];
+      const isLateNight = now.getHours() < 2 || (now.getHours() === 2 && now.getMinutes() < 30);
+      const scriberDay = new Date(now);
+      if (isLateNight) scriberDay.setDate(scriberDay.getDate() - 1);
+      const scribeDate = `${scriberDay.getFullYear()}-${String(scriberDay.getMonth() + 1).padStart(2, '0')}-${String(scriberDay.getDate()).padStart(2, '0')}`;
 
       const incompleteRituals = decryptedTasks.filter(t => 
         !t.completed && (t.category === "Daily Ritual" || t.isRitual || (t.dueDate && t.dueDate <= scribeDate))
