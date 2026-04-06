@@ -6,31 +6,41 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 // --- Moon Phase Calculation Logic ---
 function getMoonPhase() {
   const now = new Date();
-  let year = now.getFullYear();
-  let month = now.getMonth() + 1;
-  const day = now.getDate();
 
-  let c = 0, e = 0, jd = 0, b = 0;
+  // Calculate Julian Date from UTC time for accuracy across timezones
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth() + 1;
+  const day = now.getUTCDate();
+  const hour = now.getUTCHours();
+  const minute = now.getUTCMinutes();
 
-  if (month < 3) {
-    year--;
-    month += 12;
+  let Y = year;
+  let M = month;
+  if (M <= 2) {
+    Y -= 1;
+    M += 12;
   }
+  const A = Math.floor(Y / 100);
+  const B = 2 - A + Math.floor(A / 4);
+  const JD =
+    Math.floor(365.25 * (Y + 4716)) +
+    Math.floor(30.6001 * (M + 1)) +
+    day + (hour / 24) + (minute / 1440) + B - 1524.5;
 
-  c = 365.25 * year;
-  e = 30.6 * month;
-  jd = c + e + day - 694039.09;
-  jd /= 29.5305882;
-  b = parseInt(jd.toString());
-  jd -= b;
-  b = Math.round(jd * 8);
-  if (b >= 8) b = 0;
+  // Reference new moon: January 6, 2000 at 18:14 UTC (JD 2451550.26)
+  const KNOWN_NEW_MOON_JD = 2451550.26;
+  const SYNODIC_PERIOD = 29.530588853;
+
+  let daysSinceNew = (JD - KNOWN_NEW_MOON_JD) % SYNODIC_PERIOD;
+  if (daysSinceNew < 0) daysSinceNew += SYNODIC_PERIOD;
+
+  const b = Math.round(daysSinceNew / SYNODIC_PERIOD * 8) % 8;
 
   const phases = [
     "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
     "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"
   ];
-  
+
   return { phase: b, name: phases[b] };
 }
 
