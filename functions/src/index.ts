@@ -103,27 +103,31 @@ export const automatedChronicle = onSchedule({
           tasksToDelete.push(doc.ref);
         }
       });
-      const maAtCreated = alreadySealed || completedTitles.length > 0;
-      let newStreak = userData.stats?.currentStreak || 0;
-      const oldHist = userData.stats?.history10Day || [0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0];
-      const history = [...oldHist];
-      if (maAtCreated) {
-        newStreak += 1;
-        history.push(1);
-      } else {
-        newStreak = 0;
-        history.push(0);
-      }
-      const finalHistory = history.slice(-10);
-      const maxStreak = Math.max(newStreak, userData.stats?.maxStreak || 0);
-      batch.update(userDoc.ref, {
-        "stats.currentStreak": newStreak,
-        "stats.maxStreak": maxStreak,
-        "stats.history10Day": finalHistory,
-        "stats.lastResetDate": dateString,
-      });
+      // Only update user stats and create archive when the user did not already
+      // manually seal. If alreadySealed, the manual Evening Chronicle already
+      // wrote the correct streak values — running again here would
+      // double-increment currentStreak.
       if (!alreadySealed) {
+        const maAtCreated = completedTitles.length > 0;
+        let newStreak = userData.stats?.currentStreak || 0;
+        const oldHist = userData.stats?.history10Day || [0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0];
+        const history = [...oldHist];
+        if (maAtCreated) {
+          newStreak += 1;
+          history.push(1);
+        } else {
+          newStreak = 0;
+          history.push(0);
+        }
+        const finalHistory = history.slice(-10);
+        const maxStreak = Math.max(newStreak, userData.stats?.maxStreak || 0);
+        batch.update(userDoc.ref, {
+          "stats.currentStreak": newStreak,
+          "stats.maxStreak": maxStreak,
+          "stats.history10Day": finalHistory,
+          "stats.lastResetDate": dateString,
+        });
         const archiveRef = chroniclesRef.doc();
         batch.set(archiveRef, {
           userId,
