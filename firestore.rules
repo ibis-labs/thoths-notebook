@@ -36,6 +36,48 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
+
+    // 7. IPHTY INVITATIONS: One-time codes for opening encrypted channels
+    //    Anyone can read (to redeem); only the invitor can create/delete.
+    match /iphtyInvitations/{code} {
+      allow create: if request.auth != null
+        && request.resource.data.invitorId == request.auth.uid;
+      allow read: if request.auth != null;
+      allow update: if request.auth != null; // both invitor (cancel) and redeemer (mark used)
+      allow delete: if request.auth != null
+        && resource.data.invitorId == request.auth.uid;
+    }
+
+    // 8. IPHTY LINKS: Encrypted scribe-to-scribe channels (created via invitation code)
+    match /iphtyLinks/{linkId} {
+      // Links are created by the code redeemer (requesteeId == auth.uid)
+      allow create: if request.auth != null
+        && request.auth.uid in request.resource.data.participants;
+
+      // Both participants can read
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.participants;
+
+      // Both participants can update
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.participants;
+
+      // Both participants can delete
+      allow delete: if request.auth != null
+        && request.auth.uid in resource.data.participants;
+
+      // 8a. MESSAGES sub-collection: active-link participants only
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/iphtyLinks/$(linkId)).data.participants
+          && get(/databases/$(database)/documents/iphtyLinks/$(linkId)).data.status == 'active';
+
+        allow create: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/iphtyLinks/$(linkId)).data.participants
+          && get(/databases/$(database)/documents/iphtyLinks/$(linkId)).data.status == 'active'
+          && request.resource.data.senderId == request.auth.uid;
+      }
+    }
     
   }
 }

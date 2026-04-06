@@ -106,3 +106,43 @@ export type OstracaTile = {
   createdAt: string;
   updatedAt: string;
 };
+
+// ─────────────────────────────────────────────────────────────
+// 🔮 IPHTY LINK — Sacred Scribe Transmission Protocol
+// ─────────────────────────────────────────────────────────────
+
+export type IphtyLinkStatus = 'pending' | 'active' | 'rejected';
+
+export type IphtyLink = {
+  id: string;
+  participants: string[];           // sorted [uid1, uid2] for deduplication queries
+  requestorId: string;
+  requesteeId: string;
+  requestorDisplayName: string;
+  requesteeDisplayName: string;
+  requestorPublicKey: string;       // JWK JSON — ECDH P-256 public key
+  requesteePublicKey: string;       // JWK JSON — set when requestee accepts
+  status: IphtyLinkStatus;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type IphtyMessage = {
+  id: string;
+  linkId: string;
+  senderId: string;
+  senderDisplayName: string;
+  ciphertext: string;   // base64 encrypted (or decrypted plaintext post-decrypt)
+  iv: string;           // base64 IV (empty after client-side decryption)
+  createdAt: Date;
+};
+
+export type IphtyInvitation = {
+  code: string;              // doc ID, formatted XXXX-XXXX
+  invitorId: string;
+  invitorDisplayName: string;
+  invitorPublicKey: string;
+  status: 'pending' | 'used';
+  createdAt: Date;
+  expiresAt: Date;
+};

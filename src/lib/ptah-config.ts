@@ -1,52 +1,47 @@
 export const PTAH_CONFIG = {
-  version: "2.0.0", // The Neheh-Circuit — The Incentives Epoch
-  title: "THE NEHEH-CIRCUIT — SHEN RING OF COMMITMENT",
-  date: "April 04, 2026 A.D. — Year 5526 of the Old Kingdom",
-  type: "MAJOR_EPOCH_TRANSITION",
+  version: "2.1.1", // Iphty Link — The Cipher of Twin Flames
+  title: "IPHTY LINK — THE CIPHER OF TWIN FLAMES",
+  date: "April 05, 2026 A.D. — Year 5526 of the Old Kingdom",
+  type: "MAJOR_FEATURE",
 
-  intro: "The Temple has crossed a threshold. What began as a record-keeping instrument has been transfigured into a living system of devotion, rank, and reward. The Neheh-Circuit — the Eternal Loop of the Shen Ring — now pulses at the heart of the Temple, tracking the sacred chain of daily Oaths and elevating the committed Scribe through twelve tiers of distinction across 360 consecrated days. You are no longer merely a keeper of records. You are a Seeker ascending through circuit-light toward the Transcendent.",
+  intro: "The Temple has opened a new gate — one that connects Scribes across the void. Iphty Link is a scribe-to-scribe encrypted messaging system built into the heart of the Temple. Two scribes may now exchange a secret invitation code — forged here, shared out-of-band — and upon redemption, a private end-to-end encrypted channel is established instantly. Every transmission is sealed with ECDH P-256 key exchange and AES-GCM-256 encryption. The shared cipher key is computed independently by each scribe using the mathematics of elliptic curves — it is never written, never transmitted, never stored. What passes between scribes cannot be read by any other, not even the Temple itself. The node blinks when a new transmission awaits.",
 
   changes: [
     {
-      icon: "ShenRing",
-      title: "The Neheh-Circuit — Shen Ring of Commitment",
-      description: "A complete 360-day incentive platform built from first principles. Complete the daily Oath of Commitment consecutively to advance through twelve major rank boundaries across six tiers: Hour (Days 1–11), Nightwatch (12–30), Hidden (31–70), Seasonal (71–120), Longcount (121–360), and Transcendent (360). Each tier carries its own colour, its own glyph, and its own gravity. The Shen Ring — an interactive SVG drawn by hand in Inkscape and reconstructed in circuit-light — displays your live position: ten decan indicators pulse green for active days, the iris glows with seven accumulated-wisdom markers, and a separate outer arc records the higher mysteries. Decay logic applies: every ten consecutive missed days costs one major boundary. A Stone Tablet Floor at Day 70 is granted once the Seasonal tier is first reached — you cannot fall below it."
+      icon: "Radio",
+      title: "Iphty Link — Scribe-to-Scribe Encrypted Channels",
+      description: "A complete encrypted messaging system between any two authenticated Scribes. Channels are opened via one-time invitation codes (format XXXX-XXXX, forged from a cryptographically random alphabet that eliminates ambiguous characters). Each code is valid for 24 hours and consumed on first redemption — it cannot be reused. Once redeemed, the channel is immediately active; there is no accept/reject step because the act of sharing the code out-of-band IS the consent. The channel persists until either scribe chooses to close it."
     },
     {
-      icon: "StreakCelebration",
-      title: "Oath Streak Tracking — The Chain of Days",
-      description: "The Evening Chronicle now captures and celebrates your Oath of Commitment streak alongside all ritual streaks. Consecutive days are tracked, best streaks are preserved, and the post-seal StreakCelebration renders a dedicated amber Oath card showing days accumulated. The underlying data — oathCurrentStreak, oathBestStreak, lastOathDate, oathRankDay — lives in Firestore and is updated atomically each morning."
+      icon: "ECDH",
+      title: "ECDH P-256 Key Exchange — The Twin-Flame Cipher",
+      description: "Each Scribe holds an ECDH P-256 key pair generated once on first vault unlock. The public key is stored openly in Firestore. The private key is wrapped (AES-GCM) under the Scribe's existing master vault key and stored encrypted — it is never accessible without the recovery phrase. When two Scribes link, each independently runs ECDH derivation using their own private key and the other's public key, arriving at the same 256-bit AES-GCM shared secret without it ever crossing the network. This is the mathematics of elliptic-curve Diffie-Hellman: the secret is computed, never transmitted."
     },
     {
-      icon: "Promotion",
-      title: "Rank Promotion Notifications — The Rite of Elevation",
-      description: "When the Oath advances you through a major rank boundary, a full-width promotion banner appears at the top of the Temple — styled in the tier's accent colour, bordered in silver and circuit-light, pulsing with the colours of your new station. Accepting inscribes a Special Mission task into your task list: a scroll bearing your new rank title, the date of achievement, your circuit day, and the specific mission that accompanies that rank. The task card adopts the tier's exact accent colour as its border and shadow — so a Longcount promotion glows cyan, a Seasonal promotion glows purple, a Transcendent promotion blazes white."
+      icon: "Invitation",
+      title: "Invitation Code System — No Public Registry",
+      description: "There is no searchable scribe directory. Privacy is protected by design: a channel can only be opened if one Scribe physically shares their invitation code with the other through a channel of their own choosing (message, email, in person). This is the social layer of the cipher — the code is proof of intent. Codes are stored in the iphtyInvitations Firestore collection under their own document ID (the code itself), consumed on redemption, and covered by security rules that prevent any unauthenticated access."
     },
     {
-      icon: "GlobalBanners",
-      title: "Banner Priority System — No Conflict, No Freeze",
-      description: "The Gift of Ptah and Promotion banners now share a GlobalBanners priority context. When a Promotion is pending, the Gift of Ptah defers silently. When the Promotion is accepted, the Gift of Ptah banner may emerge if an update also awaits. The two rituals can never stack, overlap, or race against each other. The Temple speaks with one voice at a time."
+      icon: "NodePulse",
+      title: "Custom Iphty Link Icon — The Blinking Node",
+      description: "A custom icon drawn in Inkscape (iphty-link-icon.svg) depicts a transmission bar with two antennas, a circuit trace, and a small circle node. This icon appears in the sidebar navigation and on the Iphty Link page header. The node circle uses the iphty-node-active CSS animation — a fuchsia glow that fades from full brightness to near-invisible and back every 1.8 seconds — whenever an unread message is waiting. Unread state is computed by comparing the lastMessageAt timestamp on each link document against a localStorage timestamp that is updated each time the Scribe opens that channel."
     },
     {
-      icon: "ShenRingInkscape",
-      title: "Hand-Drawn SVG Integration — The Living Glyph",
-      description: "The Shen Ring is not a stock icon. It was drawn by hand in Inkscape: two outer orbital rings, an iris with twelve hieroglyph-detail paths, an ankh-circuit glyph at the base, a decan bar with ten tick slots, and thirty-six ribs that animate in a harp-like arpeggio sweep. All 89 named paths were extracted from the Inkscape SVG by a dedicated extraction script (scripts/extract-svg-paths.js) and stored in src/data/NehehCircuitSVGData.json. The component properly maps the two coordinate spaces — structural paths in SVG mm units, indicator paths in Inkscape px units — using the exact 1:3.7795 conversion factor. Glow filters are tuned separately for mm-space and px-space elements."
-    },
-    {
-      icon: "StreakBugFix",
-      title: "Streak Integrity Fix — The Chronicle Cannot Lie",
-      description: "A critical bug was found and sealed: the automatedChronicle Cloud Function was unconditionally resetting all ritual streaks to zero when it ran after a manual evening seal had already occurred. The fix guards the per-ritual streak update behind alreadySealed — so automated and manual paths now produce identical, consistent results. A secondary double-count was also corrected in the Evening Chronicle's post-commit celebration, which was reading fresh Firestore data instead of reusing the pre-commit snapshot, causing streak values to appear one higher than truth."
+      icon: "Security",
+      title: "Firestore Security Rules — Zero Privilege Escalation",
+      description: "iphtyInvitations: any authenticated user can read (to redeem) and the owner can create/delete. iphtyLinks: both participants (stored as a sorted participants array) can read/update/delete; the messages sub-collection requires active status and validates senderId against auth.uid. No public scribe registry exists. No user can read another scribe's private Firestore user document. The ECDH private key is wrapped under a key that exists only in the user's vault — it cannot be recovered by anyone who does not know the recovery phrase."
     },
   ],
 
   instructions: [
-    "1. SEAL YOUR OATH: Tap the Oath of Commitment each morning in the ritual card. Consecutive completions build your Neheh-Circuit rank day.",
-    "2. WATCH THE SHEN RING: Navigate to the Scribe's Dossier (tap your avatar in the sidebar) to see your live circuit position, tier, next milestone, and decay warnings.",
-    "3. ACCEPT PROMOTIONS: When a rank promotion banner appears at the top of the Temple, read your new rank and accept. A Special Mission scroll will be inscribed in your task list with your promotion details and mission.",
-    "4. FIND YOUR MISSIONS: Open the task list and filter for 'Special Missions'. Promotion tasks are bordered in your tier's accent colour.",
-    "5. GUARD THE CHAIN: The Stone Tablet Floor is granted at Day 70. Reach the Seasonal tier and you can never fall below that floor — but the higher mysteries above it require sustained devotion.",
+    "1. UNLOCK YOUR VAULT: Iphty Link requires your vault to be unlocked. Open Archives and enter your recovery phrase if the amber 'Vault Required' banner appears.",
+    "2. GENERATE A CODE: In the Iphty Link page, tap 'Generate Code'. A XXXX-XXXX invitation code appears. Copy it and share it privately with the Scribe you wish to link with — by any means you choose.",
+    "3. REDEEM A CODE: If another Scribe has shared their code with you, tap 'Enter Code', type or paste the code, and tap 'Initiate Link'. The channel opens immediately.",
+    "4. TRANSMIT: Select an active channel from the left panel and type into the transmission field. Press Enter or the send button. Your message is encrypted before it leaves your device.",
+    "5. WATCH THE NODE: The Iphty Link icon in the sidebar has a small circle — the node. When it blinks fuchsia, a new transmission has arrived in one of your channels.",
     "6. CONTACT THE TEMPLE: Prayers, inquiries, and reports of peculiarities to: rites@unclepetelaboratories.net"
   ],
 
-  devNote: "v2.0.0 marks the transition from a task/ritual manager into a full incentives platform. The Neheh-Circuit required: a complete rank engine (src/lib/neheh-circuit.ts, ~360 day mappings, decay logic, Stone Tablet Floor), a Firestore schema extension (oathRankDay, oathCurrentStreak, oathBestStreak, lastOathDate, pendingPromotion on the user doc; accentColor on tasks), a hand-traced SVG rebuilt in React with dual coordinate-space rendering, a GlobalBanners priority context to prevent banner conflicts, and a comprehensive promotion flow from OathGate trigger → Firestore write → banner notification → Special Mission task creation. The Rule of Ptah is satisfied: the system rewards the devotion it demands. The circuit is live. Let it run."
+  devNote: "v2.1.1 introduces the first multi-user feature in the Temple. The cryptographic foundation (src/lib/iphty-crypto.ts) implements ECDH P-256 key generation, JWK export/import for the public key, AES-GCM wrapping of the private key under the existing master vault key, and shared key derivation. The invitation system avoids any public user registry — iphtyInvitations documents use the code itself as the doc ID for O(1) lookup. The useIphtyNodeActive sidebar hook opens a Firestore snapshot that compares lastMessageAt on each active link against localStorage timestamps set by openConversation(), producing a zero-overhead real-time unread indicator. The custom Inkscape SVG is reconstructed as a React component (IphtyLinkIcon.tsx) with a nodeActive prop that applies the iphty-node-active CSS keyframe directly to the node path element — not a wrapper div — so the glow emanates from the correct point in the icon geometry. The SidebarMenuButton CVA class applies [&>svg]:size-4 to all direct SVG children, so the icon is wrapped in a span to bypass that constraint."
 };
