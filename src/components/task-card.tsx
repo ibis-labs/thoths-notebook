@@ -118,16 +118,15 @@ export function TaskCard({
         const taskRef = doc(db, targetCollection, task.id);
 
         if (task.isEncrypted && masterKey && task.iv) {
-            // 🏺 3. If encrypted, we must re-seal the whole array
-            const ivUint8 = new Uint8Array(base64ToBuffer(task.iv));
-            const encryptedSubtasks = await encryptData(
-                masterKey, 
-                JSON.stringify(newSubtasks), 
-                ivUint8
+            // 🏺 3. If encrypted, re-seal with a fresh IV — never reuse the title IV
+            const { ciphertext: subtasksCipher, iv: subtasksIv } = await encryptData(
+                masterKey,
+                JSON.stringify(newSubtasks)
             );
             
-            await updateDoc(taskRef, { 
-                encryptedSubtasks: bufferToBase64(encryptedSubtasks.ciphertext) 
+            await updateDoc(taskRef, {
+                encryptedSubtasks: bufferToBase64(subtasksCipher),
+                encryptedSubtasksIv: bufferToBase64(subtasksIv.buffer as ArrayBuffer),
             });
         } else {
             // Plaintext update

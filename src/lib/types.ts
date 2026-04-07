@@ -38,8 +38,10 @@ export type Task = {
   completed: boolean;
   details?: string; 
   subtasks?: Subtask[];
-  isEncrypted?: boolean;      
-  iv?: string;               
+  isEncrypted?: boolean;
+  iv?: string;                      // AES-GCM IV for the title field
+  detailsIv?: string;               // AES-GCM IV for the details field
+  encryptedSubtasksIv?: string;     // AES-GCM IV for the encryptedSubtasks field
   encryptedSubtasks?: string;
   encryptedDetails?: string;
   encryptedTitle?: string;

@@ -96,6 +96,8 @@ const addTask = async (taskData: Omit<Task, 'id' | 'completed' | 'createdAt'>) =
   let finalDetails = details;
   let encryptedSubtasks: string | null = null;
   let ivString: string | null = null;
+  let detailsIvString: string | null = null;
+  let encryptedSubtasksIvString: string | null = null;
   let isEncrypted = false;
   
   // We clear subtasks from the top level; they will live in encryptedSubtasks
@@ -104,26 +106,28 @@ const addTask = async (taskData: Omit<Task, 'id' | 'completed' | 'createdAt'>) =
 
   if (masterKey) {
     try {
-      // 1. Encrypt Title and get the IV
-      const { ciphertext: titleCipher, iv } = await encryptData(masterKey, title);
+      // 1. Encrypt Title — each field gets its own cryptographically random IV
+      const { ciphertext: titleCipher, iv: titleIv } = await encryptData(masterKey, title);
       finalTitle = bufferToBase64(titleCipher);
-      ivString = bufferToBase64(iv.buffer as ArrayBuffer);
+      ivString = bufferToBase64(titleIv.buffer as ArrayBuffer);
       isEncrypted = true;
 
-      // 2. Encrypt Details if it exists, using the same IV
+      // 2. Encrypt Details with its own fresh IV
       if (details) {
-        const { ciphertext: detailsCipher } = await encryptData(masterKey, details, iv);
+        const { ciphertext: detailsCipher, iv: detailsIv } = await encryptData(masterKey, details);
         finalDetails = bufferToBase64(detailsCipher);
+        detailsIvString = bufferToBase64(detailsIv.buffer as ArrayBuffer);
       }
       
-      // 3. Encrypt Subtasks if they exist, using the same IV
+      // 3. Encrypt Subtasks with their own fresh IV
       if (subtasks && subtasks.length > 0) {
         const subtasksString = JSON.stringify(subtasks);
-        const { ciphertext: subtasksCipher } = await encryptData(masterKey, subtasksString, iv);
+        const { ciphertext: subtasksCipher, iv: subtasksIv } = await encryptData(masterKey, subtasksString);
         encryptedSubtasks = bufferToBase64(subtasksCipher);
+        encryptedSubtasksIvString = bufferToBase64(subtasksIv.buffer as ArrayBuffer);
       }
 
-    } catch (err)      {
+    } catch (err) {
       console.error("The Scribe failed to seal the data:", err);
       // Fallback to plaintext if encryption fails to prevent losing data
     }
@@ -134,6 +138,8 @@ const addTask = async (taskData: Omit<Task, 'id' | 'completed' | 'createdAt'>) =
   const commonTaskData = {
     ...rest,
     iv: ivString,
+    detailsIv: detailsIvString,
+    encryptedSubtasksIv: encryptedSubtasksIvString,
     isEncrypted,
     userId: user.uid,
     createdAt: serverTimestamp(),
