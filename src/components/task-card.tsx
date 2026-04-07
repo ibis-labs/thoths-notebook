@@ -213,31 +213,29 @@ useEffect(() => {
                 return;
             }
 
-            // 2. Log the ingredients of the ritual for debugging
-            console.log("--- STARTING DECRYPTION ---");
-            console.log("Task ID:", task.id);
-            console.log("MasterKey in RAM:", !!masterKey);
-            console.log("IV from DB:", task.iv);
-
             // 3. Perform the Unsealing if we have the key
             if (task.isEncrypted && masterKey && task.iv) {
                 try {
-                    // Convert and wrap the IV
-                    const ivRawBuffer = base64ToBuffer(task.iv);
-                    const ivUint8 = new Uint8Array(ivRawBuffer);
-                    console.log("IV Buffer ByteLength:", ivRawBuffer.byteLength);
+                    const titleIv   = new Uint8Array(base64ToBuffer(task.iv));
+                    // Use per-field IVs when present; fall back to title IV for
+                    // tasks created before per-field IVs were introduced.
+                    const detailsIv  = task.detailsIv
+                        ? new Uint8Array(base64ToBuffer(task.detailsIv))
+                        : titleIv;
+                    const subtasksIv = task.encryptedSubtasksIv
+                        ? new Uint8Array(base64ToBuffer(task.encryptedSubtasksIv))
+                        : titleIv;
 
                     // Decrypt the Title
                     const decryptedTitle = await decryptData(
                         masterKey,
                         base64ToBuffer(task.title),
-                        ivUint8
+                        titleIv
                     );
-                    console.log("Decrypted Title:", decryptedTitle);
 
                     // Decrypt the Details
                     const decryptedDetails = task.details
-                        ? await decryptData(masterKey, base64ToBuffer(task.details), ivUint8)
+                        ? await decryptData(masterKey, base64ToBuffer(task.details), detailsIv)
                         : '';
 
                     // Decrypt the Subtasks
@@ -246,7 +244,7 @@ useEffect(() => {
                         const subData = await decryptData(
                             masterKey,
                             base64ToBuffer(task.encryptedSubtasks),
-                            ivUint8
+                            subtasksIv
                         );
                         finalSubtasks = JSON.parse(subData);
                     }
@@ -262,7 +260,6 @@ useEffect(() => {
                             iv: undefined,
                             encryptedSubtasks: undefined,
                         });
-                        console.log("SUCCESS: Task revealed.");
                     }
                 } catch (e) {
                     console.error("DECRYPTION CRITICAL FAILURE:", e);
@@ -291,7 +288,7 @@ useEffect(() => {
         revealSecrets();
 
         return () => { isMounted = false; };
-    }, [task.title, task.isEncrypted, task.iv, masterKey]);
+    }, [task.title, task.isEncrypted, task.iv, task.encryptedSubtasksIv, task.encryptedSubtasks, masterKey]);
     return (
         <>
             <div ref={cardRef} className={containerClasses} onClick={handleDetailsClick}
