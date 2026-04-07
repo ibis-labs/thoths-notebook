@@ -20,7 +20,7 @@ import { ObeliskGuardian } from "@/components/IstanbulProtocol/ObeliskGuardian";
 import IstanbulRitual from "@/components/IstanbulProtocol/IstanbulRitual";import { RecoveryPhrasePanel } from '@/components/recovery-phrase-panel';
 import { NehehCircuit } from "@/components/neheh-circuit";
 export default function ScribeDossierPage() {
-  const { user } = useAuth();
+  const { user, needsFinalSeal } = useAuth();
   const { installChip, isInstalled, canInstall } = usePWA();
   const { setOpenMobile } = useSidebar();
   const router = useRouter();
@@ -149,17 +149,37 @@ const [ritualState, setRitualState] = useState<'dossier' | 'ritual' | 'recovery'
       {/* 🔑 RECOVERY PHRASE BUTTON */}
       <button
         onClick={() => setRitualState('recovery')}
-        className="flex flex-col items-center justify-center p-6 rounded-3xl border-2 border-cyan-900/60 bg-cyan-950/10 active:scale-95 transition-all shadow-[0_0_12px_rgba(34,211,238,0.08)] w-full max-w-xs group hover:border-cyan-700/60 hover:shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+        className={`flex flex-col items-center justify-center p-6 rounded-3xl border-2 active:scale-95 transition-all w-full max-w-xs group ${
+          needsFinalSeal
+            ? "border-amber-500/70 bg-amber-950/20 shadow-[0_0_20px_rgba(251,191,36,0.25)] hover:border-amber-400 hover:shadow-[0_0_30px_rgba(251,191,36,0.4)]"
+            : "border-cyan-900/60 bg-cyan-950/10 shadow-[0_0_12px_rgba(34,211,238,0.08)] hover:border-cyan-700/60 hover:shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+        }`}
       >
         <div className="relative mb-4">
-          <div className="absolute -inset-2 bg-cyan-500/10 rounded-full blur-md group-hover:bg-cyan-500/20 transition-all" />
-          <ShieldCheck className="w-10 h-10 text-cyan-600 group-hover:text-cyan-400 relative transition-colors" />
+          <div className={`absolute -inset-2 rounded-full blur-md transition-all ${
+            needsFinalSeal
+              ? "bg-amber-500/20 group-hover:bg-amber-500/35 animate-pulse"
+              : "bg-cyan-500/10 group-hover:bg-cyan-500/20"
+          }`} />
+          <ShieldCheck className={`w-10 h-10 relative transition-colors ${
+            needsFinalSeal ? "text-amber-400" : "text-cyan-600 group-hover:text-cyan-400"
+          }`} />
+          {needsFinalSeal && (
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+            </span>
+          )}
         </div>
-        <span className="font-headline font-bold text-[10px] tracking-[0.3em] uppercase text-cyan-600 group-hover:text-cyan-400 transition-colors">
+        <span className={`font-headline font-bold text-[10px] tracking-[0.3em] uppercase transition-colors ${
+          needsFinalSeal ? "text-amber-400" : "text-cyan-600 group-hover:text-cyan-400"
+        }`}>
           Sacred Recovery Phrase
         </span>
-        <p className="mt-2 text-[8px] text-cyan-900/80 font-mono tracking-widest uppercase">
-          View your 24-word master key
+        <p className={`mt-2 text-[8px] font-mono tracking-widest uppercase ${
+          needsFinalSeal ? "text-amber-600/80" : "text-cyan-900/80"
+        }`}>
+          {needsFinalSeal ? "Final Seal Required" : "View your 24-word master key"}
         </p>
       </button>
     </>

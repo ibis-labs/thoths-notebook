@@ -13,7 +13,7 @@ interface RecoveryPhrasePanelProps {
 }
 
 export function RecoveryPhrasePanel({ onClose }: RecoveryPhrasePanelProps) {
-  const { masterKey } = useAuth();
+  const { masterKey, needsFinalSeal, performFinalSeal } = useAuth();
   const [phase, setPhase] = useState<Phase>("warning");
   const [words, setWords] = useState<string[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
@@ -21,6 +21,30 @@ export function RecoveryPhrasePanel({ onClose }: RecoveryPhrasePanelProps) {
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sealPassword, setSealPassword] = useState('');
+  const [isSealWorking, setIsSealWorking] = useState(false);
+  const [sealError, setSealError] = useState<string | null>(null);
+
+  const handleFinalSeal = async () => {
+    if (!sealPassword) return;
+    setIsSealWorking(true);
+    setSealError(null);
+    try {
+      const ok = await performFinalSeal(sealPassword);
+      if (!ok) {
+        setSealError('Incorrect password. Check it and try again.');
+        return;
+      }
+      // Success — wipe sensitive state then close
+      setWords([]);
+      setRevealed(false);
+      setConfirmed(false);
+      setSealPassword('');
+      onClose();
+    } finally {
+      setIsSealWorking(false);
+    }
+  };
 
   const revealPhrase = async () => {
     if (!masterKey) {
@@ -209,21 +233,53 @@ export function RecoveryPhrasePanel({ onClose }: RecoveryPhrasePanelProps) {
                 {confirmed && <CheckCheck className="w-3 h-3 text-slate-900" />}
               </div>
               <span className="text-xs text-slate-400 leading-relaxed">
-                I have written all 24 words down in the correct order and stored them somewhere safe.
+                ✍️ I have <span className="text-amber-300 font-semibold">physically written</span> all 24 words on paper, in order, and stored the paper somewhere safe.{" "}
+                <span className="text-slate-500">
+                  Tip: you can store the <span className="italic">location</span> of that paper as an encrypted note in the Obelisk vault — available in your Scribe&apos;s Dossier.
+                </span>
               </span>
             </label>
 
-            <button
-              onClick={handleSeal}
-              disabled={!confirmed}
-              className="w-full py-3 font-display font-bold text-slate-900 bg-amber-400 rounded-lg hover:bg-amber-300 disabled:bg-slate-700 disabled:text-slate-500 transition-colors tracking-widest uppercase text-sm"
-            >
-              Seal the Scroll
-            </button>
-
-            <p className="text-center text-xs text-slate-700">
-              These words will not be shown again without re-opening this panel.
-            </p>
+            {needsFinalSeal ? (
+              <div className="space-y-3 border border-emerald-500/30 rounded-xl p-4 bg-emerald-950/20">
+                <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">
+                  ❖ The Final Seal ❖
+                </p>
+                <p className="text-xs text-slate-400 text-center leading-relaxed">
+                  Check the box above to confirm you&apos;ve written your words down, then enter your current login password to re-seal with the new security standard.
+                </p>
+                <input
+                  type="password"
+                  value={sealPassword}
+                  onChange={(e) => setSealPassword(e.target.value)}
+                  placeholder="Your current login password"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-100 placeholder-slate-600 focus:border-emerald-500 focus:outline-none font-mono"
+                />
+                {sealError && (
+                  <p className="text-xs text-red-400 text-center">{sealError}</p>
+                )}
+                <button
+                  onClick={handleFinalSeal}
+                  disabled={!confirmed || !sealPassword || isSealWorking}
+                  className="w-full py-3 font-display font-bold text-slate-900 bg-emerald-500 rounded-lg hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 transition-colors tracking-widest uppercase text-sm"
+                >
+                  {isSealWorking ? 'Sealing...' : 'Perform the Final Seal'}
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleSeal}
+                  disabled={!confirmed}
+                  className="w-full py-3 font-display font-bold text-slate-900 bg-amber-400 rounded-lg hover:bg-amber-300 disabled:bg-slate-700 disabled:text-slate-500 transition-colors tracking-widest uppercase text-sm"
+                >
+                  Seal the Scroll
+                </button>
+                <p className="text-center text-xs text-slate-700">
+                  These words will not be shown again without re-opening this panel.
+                </p>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

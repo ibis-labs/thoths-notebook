@@ -112,8 +112,8 @@ export async function deriveWrappingKey(password: string, salt: Uint8Array): Pro
   return await window.crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt: salt as any, 
-      iterations: 100000,
+      salt: salt as any,
+      iterations: 600000, // OWASP 2026 minimum for PBKDF2-SHA-256
       hash: "SHA-256",
     },
     baseKey,
@@ -195,5 +195,44 @@ export async function unwrapKeyFromPhrase(
   const wrappingKey = await deriveWrappingKey(phrase, new Uint8Array(saltBuffer));
 
   // 2. Use that Wrapping Key to open the Sarcophagus
+  return await unwrapMasterKey(wrappedMasterKeyBuffer, wrappingKey);
+}
+
+// 📜 Ritual 6b: Legacy Wrapping Key — 100,000 iterations.
+// Used ONLY during the grace-period migration to kryptosVersion: 2.
+// Do not use for new key derivation.
+export async function deriveWrappingKeyLegacy(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  const encoder = new TextEncoder();
+  const passwordData = encoder.encode(password);
+
+  const baseKey = await window.crypto.subtle.importKey(
+    "raw",
+    passwordData,
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+
+  return await window.crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt as any,
+      iterations: 100000, // Legacy — do not raise; this must match what old vaults were sealed with
+      hash: "SHA-256",
+    },
+    baseKey,
+    { name: "AES-KW", length: 256 },
+    false,
+    ["wrapKey", "unwrapKey"]
+  );
+}
+
+// 📜 Ritual 14b: Legacy unsealing — used ONLY during the grace-period migration.
+export async function unwrapKeyFromPhraseLegacy(
+  phrase: string,
+  wrappedMasterKeyBuffer: ArrayBuffer,
+  saltBuffer: ArrayBuffer
+): Promise<CryptoKey> {
+  const wrappingKey = await deriveWrappingKeyLegacy(phrase, new Uint8Array(saltBuffer));
   return await unwrapMasterKey(wrappedMasterKeyBuffer, wrappingKey);
 }

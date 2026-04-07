@@ -85,12 +85,19 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
         // If the task is marked as encrypted, attempt to decrypt each field individually.
         if (task.isEncrypted && masterKey && task.iv) {
           try {
-            const ivBuff = base64ToBuffer(task.iv);
-            const ivUint8 = new Uint8Array(ivBuff);
+            // Each field uses its own IV when present.
+            // Falls back to the title IV for tasks saved before per-field IVs were introduced.
+            const titleIv   = new Uint8Array(base64ToBuffer(task.iv));
+            const detailsIv  = task.detailsIv
+              ? new Uint8Array(base64ToBuffer(task.detailsIv))
+              : titleIv;
+            const subtasksIv = task.encryptedSubtasksIv
+              ? new Uint8Array(base64ToBuffer(task.encryptedSubtasksIv))
+              : titleIv;
 
             // --- Decrypt Title ---
             try {
-              setTitle(await decryptData(masterKey, base64ToBuffer(task.title), ivUint8));
+              setTitle(await decryptData(masterKey, base64ToBuffer(task.title), titleIv));
             } catch (e) {
               console.warn(`Failed to decrypt title, assuming plaintext. Task ID: ${task.id}`, e);
               setTitle(task.title); // Fallback to raw title
@@ -99,7 +106,7 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
             // --- Decrypt Details ---
             if (task.details) {
               try {
-                setDetails(await decryptData(masterKey, base64ToBuffer(task.details), ivUint8));
+                setDetails(await decryptData(masterKey, base64ToBuffer(task.details), detailsIv));
               } catch (e) {
                 console.warn(`Failed to decrypt details, assuming plaintext. Task ID: ${task.id}`, e);
                 setDetails(task.details); // Fallback to raw details
@@ -109,7 +116,7 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
             // --- Decrypt Subtasks ---
             if (task.encryptedSubtasks) {
               try {
-                const subData = await decryptData(masterKey, base64ToBuffer(task.encryptedSubtasks), ivUint8);
+                const subData = await decryptData(masterKey, base64ToBuffer(task.encryptedSubtasks), subtasksIv);
                 setSubtasks(subData ? JSON.parse(subData) : []);
               } catch (e) {
                 console.warn(`Failed to decrypt subtasks. Task ID: ${task.id}`, e);
@@ -168,19 +175,34 @@ export function EditTaskDialog({ task, open, onOpenChange, collectionName = "tas
       };
 
       if (masterKey) {
-        const { ciphertext: titleCipher, iv } = await encryptData(masterKey, title);
-        const ivString = bufferToBase64(iv.buffer as ArrayBuffer);
+        const { ciphertext: titleCipher, iv: titleIv } = await encryptData(masterKey, title);
+        const ivString = bufferToBase64(titleIv.buffer as ArrayBuffer);
 
-        let finalDetails = details ? bufferToBase64((await encryptData(masterKey, details, iv)).ciphertext) : null;
-        let finalEncryptedSubtasks = (subtasks && subtasks.length > 0) ? bufferToBase64((await encryptData(masterKey, JSON.stringify(subtasks), iv)).ciphertext) : null;
+        let finalDetails: string | null = null;
+        let detailsIvString: string | null = null;
+        if (details) {
+          const { ciphertext: detailsCipher, iv: detailsIv } = await encryptData(masterKey, details);
+          finalDetails = bufferToBase64(detailsCipher);
+          detailsIvString = bufferToBase64(detailsIv.buffer as ArrayBuffer);
+        }
+
+        let finalEncryptedSubtasks: string | null = null;
+        let encryptedSubtasksIvString: string | null = null;
+        if (subtasks && subtasks.length > 0) {
+          const { ciphertext: subtasksCipher, iv: subtasksIv } = await encryptData(masterKey, JSON.stringify(subtasks));
+          finalEncryptedSubtasks = bufferToBase64(subtasksCipher);
+          encryptedSubtasksIvString = bufferToBase64(subtasksIv.buffer as ArrayBuffer);
+        }
 
         payload = {
           ...payload,
           title: bufferToBase64(titleCipher),
-          details: finalDetails,
-          encryptedSubtasks: finalEncryptedSubtasks,
-          subtasks: [],
           iv: ivString,
+          details: finalDetails,
+          detailsIv: detailsIvString,
+          encryptedSubtasks: finalEncryptedSubtasks,
+          encryptedSubtasksIv: encryptedSubtasksIvString,
+          subtasks: [],
           isEncrypted: true
         };
       } else {

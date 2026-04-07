@@ -38,12 +38,34 @@ service cloud.firestore {
     }
 
     // 7. IPHTY INVITATIONS: One-time codes for opening encrypted channels
-    //    Anyone can read (to redeem); only the invitor can create/delete.
     match /iphtyInvitations/{code} {
+      // Only the invitor may create their own invitation.
       allow create: if request.auth != null
         && request.resource.data.invitorId == request.auth.uid;
-      allow read: if request.auth != null;
-      allow update: if request.auth != null; // both invitor (cancel) and redeemer (mark used)
+
+      // get (by known code ID) — any authenticated user, to redeem.
+      // list — owner only; prevents harvesting the entire collection.
+      allow get: if request.auth != null;
+      allow list: if request.auth != null
+        && resource.data.invitorId == request.auth.uid;
+
+      // Invitor may cancel: may only set status → 'cancelled', no other fields.
+      allow update: if request.auth != null
+        && resource.data.invitorId == request.auth.uid
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+
+      // Redeemer may mark used: must not be the invitor, doc must be pending,
+      // and only the redemption fields may be written.
+      allow update: if request.auth != null
+        && request.auth.uid != resource.data.invitorId
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'used'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'redeemedBy', 'redeemedAt'])
+        && request.resource.data.redeemedBy == request.auth.uid;
+
+      // Only the invitor may delete their own invitation.
       allow delete: if request.auth != null
         && resource.data.invitorId == request.auth.uid;
     }

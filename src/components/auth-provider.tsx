@@ -4,37 +4,60 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase"; // Ensure db is imported
 import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
-import { base64ToBuffer, bufferToBase64 } from "@/lib/crypto"; // Ensure unwrapKey is exported from crypto.ts
+import { base64ToBuffer, bufferToBase64, deriveWrappingKey, wrapMasterKey } from "@/lib/crypto";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   masterKey: CryptoKey | null;
-  ritualInProgress: boolean; 
+  ritualInProgress: boolean;
   onboardingComplete: boolean;
+  needsFinalSeal: boolean;
   setRitualInProgress: (inProgress: boolean) => void;
   setMasterKey: (key: CryptoKey | null) => void;
   setOnboardingComplete: (complete: boolean) => void;
-  unlockArchives: (phrase: string) => Promise<boolean>; // 🏺 New Ritual
+  unlockArchives: (phrase: string) => Promise<boolean>;
+  performFinalSeal: (password: string) => Promise<boolean>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ 
-  user: null, 
-  loading: true, 
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
   masterKey: null,
   ritualInProgress: false,
   onboardingComplete: false,
+  needsFinalSeal: false,
   setRitualInProgress: () => {},
   setMasterKey: () => {},
   setOnboardingComplete: () => {},
   unlockArchives: async () => false,
+  performFinalSeal: async () => false,
   signInWithGoogle: async () => {},
   signOut: async () => {}
 });
 
 export const useAuth = () => useContext(AuthContext);
+
+/**
+ * 🛡️ THE SESSION SHIELD
+ * Lives only in module memory — never in any storage.
+ * Generated fresh on each page load. On hard refresh or new tab it is gone,
+ * making any wrapped bytes in sessionStorage permanently unreadable.
+ */
+let _sessionWrappingKey: CryptoKey | null = null;
+
+async function getOrCreateSessionWrappingKey(): Promise<CryptoKey> {
+  if (!_sessionWrappingKey) {
+    _sessionWrappingKey = await window.crypto.subtle.generateKey(
+      { name: "AES-KW", length: 256 },
+      false, // non-extractable — cannot be exported from memory
+      ["wrapKey", "unwrapKey"]
+    );
+  }
+  return _sessionWrappingKey;
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -42,31 +65,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [masterKey, setMasterKey] = useState<CryptoKey | null>(null);
   const [ritualInProgress, setRitualInProgress] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [needsFinalSeal, setNeedsFinalSeal] = useState(false);
   /**
    * 🏺 RITUAL 1: The Session Bridge Handler
+   * Wraps the master key with an ephemeral AES-KW key that exists only in
+   * module memory. Raw key bytes are never written to any browser storage.
    */
   const handleSetMasterKey = async (key: CryptoKey | null) => {
-    console.log("🔑 Auth: handleSetMasterKey triggered. Key present?", !!key);
     setMasterKey(key);
-    
+
     if (key) {
       try {
-        const exported = await window.crypto.subtle.exportKey("raw", key);
-        sessionStorage.setItem("thoth_session_key", bufferToBase64(exported));
-        console.log("✅ Auth: Key mirrored to Session Storage.");
+        const wrappingKey = await getOrCreateSessionWrappingKey();
+        const wrappedBuffer = await window.crypto.subtle.wrapKey("raw", key, wrappingKey, "AES-KW");
+        sessionStorage.setItem("thoth_session_key", bufferToBase64(wrappedBuffer));
       } catch (e) {
-        console.error("❌ Auth: Failed to export key:", e);
+        console.error("❌ Auth: Failed to seal session key:", e);
       }
     } else {
       sessionStorage.removeItem("thoth_session_key");
+      _sessionWrappingKey = null;
     }
   };
 
   /**
    * 🏺 RITUAL 2: The Retrieval Ritual
-   * Fetches the wrapped key from Firestore and attempts to unwrap it with a phrase.
+   * Tries 600k PBKDF2 first (kryptosVersion: 2). Falls back to 100k for the
+   * grace-period migration. If only legacy succeeds, needsFinalSeal = true.
    */
-const unlockArchives = async (phrase: string): Promise<boolean> => {
+  const unlockArchives = async (phrase: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
@@ -82,20 +109,61 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
         return false;
       }
 
-      // 🏺 THE UNSEALING
-      const { unwrapKeyFromPhrase } = await import('@/lib/crypto');
-      
-      const liveKey = await unwrapKeyFromPhrase(
-        phrase,
-        base64ToBuffer(wrappedMasterKey),
-        base64ToBuffer(salt)
-      );
+      const { unwrapKeyFromPhrase, unwrapKeyFromPhraseLegacy } = await import('@/lib/crypto');
 
-      // Save to RAM and Bridge
-      await handleSetMasterKey(liveKey);
+      // Attempt 1: current 600k derivation
+      try {
+        const liveKey = await unwrapKeyFromPhrase(
+          phrase,
+          base64ToBuffer(wrappedMasterKey),
+          base64ToBuffer(salt)
+        );
+        await handleSetMasterKey(liveKey);
+        return true;
+      } catch {
+        // 600k derivation failed — vault was sealed with legacy 100k derivation
+      }
+
+      // Attempt 2: legacy 100k derivation (grace-period migration only)
+      try {
+        const liveKey = await unwrapKeyFromPhraseLegacy(
+          phrase,
+          base64ToBuffer(wrappedMasterKey),
+          base64ToBuffer(salt)
+        );
+        await handleSetMasterKey(liveKey);
+        setNeedsFinalSeal(true);
+        return true;
+      } catch {
+        return false; // Both derivations failed — incorrect password
+      }
+    } catch (e) {
+      console.error("❌ Archive retrieval failed:", e);
+      return false;
+    }
+  };
+
+  /**
+   * 🏺 RITUAL 2b: The Final Seal
+   * Re-wraps the master key with 600k PBKDF2 and a fresh salt, then writes
+   * kryptosVersion: 2 to Firestore. Clears needsFinalSeal on success.
+   */
+  const performFinalSeal = async (password: string): Promise<boolean> => {
+    if (!user || !masterKey) return false;
+    try {
+      const salt = window.crypto.getRandomValues(new Uint8Array(16));
+      const wrappingKey = await deriveWrappingKey(password, salt);
+      const wrappedBuffer = await wrapMasterKey(masterKey, wrappingKey);
+      const { updateDoc: fsUpdateDoc, doc: fsDoc } = await import('firebase/firestore');
+      await fsUpdateDoc(fsDoc(db, 'users', user.uid), {
+        kryptosSalt: bufferToBase64(salt.buffer as ArrayBuffer),
+        wrappedMasterKey: bufferToBase64(wrappedBuffer),
+        kryptosVersion: 2,
+      });
+      setNeedsFinalSeal(false);
       return true;
     } catch (e) {
-      console.error("❌ The phrase failed to move the stone. Likely incorrect phrase.", e);
+      console.error('❌ Final Seal failed:', e);
       return false;
     }
   };
@@ -105,7 +173,6 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
    */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("🔥 Firebase: Auth state changed. User:", firebaseUser?.email);
       setUser(firebaseUser);
 
       // If we have a firebase auth user, attempt to enrich/sync their profile from Firestore
@@ -117,7 +184,6 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
             if (data?.displayName && (!firebaseUser.displayName || firebaseUser.displayName !== data.displayName)) {
               try {
                 await updateProfile(firebaseUser, { displayName: data.displayName });
-                console.log("✅ Auth: displayName synced from Firestore to Auth user.");
                 // update local user reference after profile change
                 setUser({ ...firebaseUser, displayName: data.displayName } as User);
               } catch (e) {
@@ -125,12 +191,8 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
               }
             }
             // 🏺 Load onboarding completion status from Firestore
-            console.log("🔥 Auth: Firestore user data keys:", Object.keys(data));
             if (data?.onboardingComplete) {
-              console.log("✅ Auth: Onboarding marked as complete in Firestore.");
               setOnboardingComplete(true);
-            } else {
-              console.log("❌ Auth: Onboarding NOT marked as complete. onboardingComplete value:", data?.onboardingComplete);
             }
           }
         } catch (e) {
@@ -148,22 +210,27 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
         sessionStorage.removeItem("thoth_session_key");
         return;
       }
-      const savedKeyBase64 = sessionStorage.getItem("thoth_session_key");
-      if (savedKeyBase64) {
+      // Without the ephemeral wrapping key in memory (i.e. after a hard refresh
+      // or in a new tab) the stored bytes are cryptographically useless.
+      if (!_sessionWrappingKey) return;
+
+      const wrappedBase64 = sessionStorage.getItem("thoth_session_key");
+      if (wrappedBase64) {
         try {
-          console.log("🏺 Bridge: Found saved key. Attempting restoration...");
-          const rawKey = base64ToBuffer(savedKeyBase64);
-          const restoredKey = await window.crypto.subtle.importKey(
+          const wrappedBuffer = base64ToBuffer(wrappedBase64);
+          const restoredKey = await window.crypto.subtle.unwrapKey(
             "raw",
-            rawKey,
-            "AES-GCM",
+            wrappedBuffer,
+            _sessionWrappingKey,
+            "AES-KW",
+            { name: "AES-GCM" },
             true,
             ["encrypt", "decrypt"]
           );
           setMasterKey(restoredKey);
-          console.log("✨ Bridge: Master Key restored successfully.");
         } catch (e) {
-          console.error("❌ Bridge: Restoration failed:", e);
+          console.error("❌ Bridge: Restoration failed — clearing session key.", e);
+          sessionStorage.removeItem("thoth_session_key");
         }
       }
     };
@@ -195,12 +262,14 @@ const unlockArchives = async (phrase: string): Promise<boolean> => {
     user,
     loading,
     masterKey,
-    ritualInProgress, // 🏺 The Signal
-    onboardingComplete, // 🏺 The Onboarding Flag
-    setRitualInProgress, // 🏺 The Command
+    ritualInProgress,
+    onboardingComplete,
+    needsFinalSeal,
+    setRitualInProgress,
     setMasterKey: handleSetMasterKey,
-    setOnboardingComplete, // 🏺 The Onboarding Command
-    unlockArchives, // 🏺 Exported for use in the UI
+    setOnboardingComplete,
+    unlockArchives,
+    performFinalSeal,
     signInWithGoogle,
     signOut
   };
