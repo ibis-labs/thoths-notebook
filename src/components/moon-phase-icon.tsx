@@ -38,9 +38,9 @@ function getMoonPhase() {
 const NewMoon = () => <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" />;
 const WaxingCrescent = () => <g transform="rotate(30 12 12)"><path d="M12 2 A10 10 0 1 1 12 22 A8 10 0 1 0 12 2 Z" fill="currentColor" /></g>;
 const FirstQuarter = () => <path d="M12 2 V22 A10 10 0 0 0 12 2 Z" fill="currentColor" />;
-const WaxingGibbous = () => <g transform="rotate(30 12 12)"><path d="M12 2 A10 10 0 1 1 12 22 A4 10 0 1 0 12 2 Z" fill="currentColor" /></g>;
+const WaxingGibbous = () => <path d="M12 2 A10 10 0 0 1 12 22 A4 10 0 0 1 12 2 Z" fill="currentColor" />;
 const FullMoon = () => <circle cx="12" cy="12" r="10" fill="currentColor" />;
-const WaningGibbous = () => <g transform="rotate(-30 12 12)"><path d="M12 2 A10 10 0 1 0 12 22 A4 10 0 1 1 12 2 Z" fill="currentColor" /></g>;
+const WaningGibbous = () => <path d="M12 2 A10 10 0 0 0 12 22 A4 10 0 0 0 12 2 Z" fill="currentColor" />;
 const LastQuarter = () => <path d="M12 2 V22 A10 10 0 0 1 12 2 Z" fill="currentColor" />;
 const WaningCrescent = () => <g transform="rotate(-30 12 12)"><path d="M12 2 A10 10 0 1 0 12 22 A8 10 0 1 1 12 2 Z" fill="currentColor" /></g>;
 
