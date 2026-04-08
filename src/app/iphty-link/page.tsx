@@ -12,6 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { IphtyLinkIcon } from '@/components/icons/IphtyLinkIcon';
+import { IphtyLinkDuckIcon } from '@/components/icons/IphtyLinkDuckIcon';
 import { useAuth } from '@/components/auth-provider';
 import { useIphtyLink } from '@/hooks/use-iphty-link';
 import { ChatWindow, ChatWelcome } from './components/chat-window';
@@ -144,14 +145,24 @@ export default function IphtyLinkPage() {
         {/* ── LEFT PANEL ───────────────────────────────────────── */}
         <div className={`
           w-full md:w-72 lg:w-80 shrink-0
+          relative
           border-r border-violet-900/30
           bg-gradient-to-b from-violet-950/10 to-black
           flex flex-col overflow-hidden
           ${mobileView === 'chat' ? 'hidden md:flex' : 'flex'}
         `}>
 
+          {/* 🦆 Duck backdrop — shimmer animation lives behind all panel content */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
+            <IphtyLinkDuckIcon
+              size={328}
+              className="text-violet-300 opacity-[0.42] drop-shadow-[0_0_8px_rgba(196,181,253,0.6)]"
+              aria-hidden="true"
+            />
+          </div>
+
           {/* Section header */}
-          <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-violet-900/30">
+          <div className="relative z-10 shrink-0 flex items-center gap-2 px-4 py-3 border-b border-violet-900/30">
             <MessageSquare className="w-3.5 h-3.5 text-violet-500/60" />
             <span className="text-[10px] text-violet-500/70 font-display tracking-[0.3em] uppercase font-bold">
               Active Channels
@@ -165,7 +176,7 @@ export default function IphtyLinkPage() {
           </div>
 
           {/* Channel list */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1.5
+          <div className="relative z-10 flex-1 overflow-y-auto p-3 space-y-1.5
             scrollbar-thin scrollbar-thumb-violet-900/50 scrollbar-track-transparent">
             {loading ? (
               <div className="flex items-center justify-center py-10">
@@ -195,7 +206,7 @@ export default function IphtyLinkPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="shrink-0 p-3 border-t border-violet-900/30 grid grid-cols-2 gap-2">
+          <div className="relative z-10 shrink-0 p-3 border-t border-violet-900/30 grid grid-cols-2 gap-2">
             <button
               onClick={() => setShowGenerateDialog(true)}
               disabled={keySetupStatus === 'needs-vault'}
@@ -224,7 +235,7 @@ export default function IphtyLinkPage() {
           </div>
 
           {/* Footer inscription */}
-          <div className="shrink-0 px-4 py-2 border-t border-violet-900/20">
+          <div className="relative z-10 shrink-0 px-4 py-2 border-t border-violet-900/20">
             <div className="text-center text-[10px] text-violet-900/50 font-display tracking-[0.3em] uppercase">
               𓂀 · End-to-End Encrypted · 𓂀
             </div>

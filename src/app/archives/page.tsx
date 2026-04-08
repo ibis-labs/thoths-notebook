@@ -12,6 +12,7 @@ import { decryptData, base64ToBuffer } from "@/lib/crypto";
 // 🏺 Manifesting the Pylon
 import { FirstPylonIcon } from "@/components/icons/FirstPylonIcon";
 import { OstraconIconLarge } from "@/components/icons/ostracon-icon-large";
+import { IphtyLinkDuckIcon } from "@/components/icons/IphtyLinkDuckIcon";
 
 export default function ArchivesPage() {
   const router = useRouter();
@@ -125,14 +126,23 @@ export default function ArchivesPage() {
     <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent mt-2" />
   </div>
 
-  {/* 🕯️ RIGHT: The Ostraca Button */}
-  <button
-    onClick={() => router.push('/ostraca')}
-    className="flex flex-col items-center justify-center p-0.1 rounded-2xl border-2 border-emerald-400 bg-emerald-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] min-w-[115px]"
-  >
-    <OstraconIconLarge className="w-20 h-20 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
-    <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-emerald-300 mt-1">OSTRACA</span>
-  </button>
+  {/* 🕯️ RIGHT: Ostraca + IphtyLink buttons */}
+  <div className="flex flex-col gap-2 items-center">
+    <button
+      onClick={() => router.push('/ostraca')}
+      className="flex flex-col items-center justify-center p-0.5 rounded-2xl border-2 border-emerald-400 bg-emerald-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] min-w-[110px]"
+    >
+      <OstraconIconLarge className="w-16 h-16 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+      <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-emerald-300 mt-0.5">OSTRACA</span>
+    </button>
+    <button
+      onClick={() => router.push('/iphty-link')}
+      className="flex flex-col items-center justify-center p-0.5 rounded-2xl border-2 border-violet-400 bg-violet-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(167,139,250,0.4)] min-w-[110px]"
+    >
+      <IphtyLinkDuckIcon size={90} className="text-violet-400 drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]" />
+      <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-violet-300 mt-0.5">IPHTY LINK</span>
+    </button>
+  </div>
 </div>
 
       {/* Hall Content */}

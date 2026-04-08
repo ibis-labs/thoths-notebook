@@ -15,6 +15,7 @@ import { EphemeraModal } from '@/components/ostraca/EphemeraModal';
 import { BanishmentPortal } from '@/components/banishment-portal';
 import { FirstPylonIcon } from '@/components/icons/FirstPylonIcon';
 import { OstraconIconLarge } from '@/components/icons/ostracon-icon-large';
+import { IphtyLinkDuckIcon } from '@/components/icons/IphtyLinkDuckIcon';
 import { DuamatefJar } from '@/components/icons/duamatef-jar';
 import type { OstracaTile, OstracaCollection, OstracaTileColor, ChecklistItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -574,6 +575,15 @@ export default function OstracaPage() {
         >
           <FirstPylonIcon size={60} className="text-cyan-400" />
           <span className="text-[8px] uppercase text-cyan-300 tracking-widest">To Main Hall</span>
+        </button>
+
+        {/* 🦆 IPHTY LINK — centered nav duck */}
+        <button
+          onClick={() => router.push('/iphty-link')}
+          className="flex flex-col items-center justify-center p-0.5 rounded-2xl border-2 border-violet-400 bg-violet-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(167,139,250,0.4)] min-w-[110px]"
+        >
+          <IphtyLinkDuckIcon size={78} className="text-violet-400 drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]" />
+          <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-violet-300 mt-0.5">IPHTY LINK</span>
         </button>
 
         <div className="flex items-center gap-3 pt-2">

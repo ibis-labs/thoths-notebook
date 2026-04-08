@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { OstraconIconLarge } from "@/components/icons/ostracon-icon-large";
 import { Button } from "@/components/ui/button";
 import { FirstPylonIcon } from "@/components/icons/FirstPylonIcon";
+import { IphtyLinkDuckIcon } from "@/components/icons/IphtyLinkDuckIcon";
 import { 
   Sparkles, 
   Hammer,
@@ -43,13 +44,20 @@ export default function LibraryPage() {
           Grand Library
         </h1>
 
-        <div className="w-10 flex justify-end">
+        <div className="flex flex-col gap-2 items-center">
           <button
             onClick={() => router.push('/ostraca')}
-            className="flex flex-col items-center justify-center p-0.1 rounded-2xl border-2 border-emerald-400 bg-emerald-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] min-w-[115px]"
+            className="flex flex-col items-center justify-center p-0.5 rounded-2xl border-2 border-emerald-400 bg-emerald-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] min-w-[110px]"
           >
-            <OstraconIconLarge className="w-20 h-20 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
-            <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-emerald-300 mt-1">OSTRACA</span>
+            <OstraconIconLarge className="w-16 h-16 text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+            <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-emerald-300 mt-0.5">OSTRACA</span>
+          </button>
+          <button
+            onClick={() => router.push('/iphty-link')}
+            className="flex flex-col items-center justify-center p-0.5 rounded-2xl border-2 border-violet-400 bg-violet-950/40 active:scale-95 transition-all shadow-[0_0_15px_rgba(167,139,250,0.4)] min-w-[110px]"
+          >
+            <IphtyLinkDuckIcon size={90} className="text-violet-400 drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]" />
+            <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-violet-300 mt-0.5">IPHTY LINK</span>
           </button>
         </div>
       </div>
