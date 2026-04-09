@@ -117,15 +117,6 @@ export default function ArchivesPage() {
   </span>
 </button>
 
-  {/* 🏛️ CENTER: The Spaced Title */}
-  <div className="flex-1 flex flex-col items-center ml-2">
-    <h1 className="font-headline font-bold text-xl text-center text-cyan-400 tracking-[0.3em] uppercase drop-shadow-[0_0_10px_rgba(34,211,238,1)] leading-none">
-      The <br/> Archives
-    </h1>
-    {/* A horizontal grounding line to separate Title from Content */}
-    <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent mt-2" />
-  </div>
-
   {/* 🕯️ RIGHT: Ostraca + IphtyLink buttons */}
   <div className="flex flex-col gap-2 items-center">
     <button
@@ -144,6 +135,14 @@ export default function ArchivesPage() {
     </button>
   </div>
 </div>
+
+      {/* 🏛️ PAGE TITLE */}
+      <div className="max-w-3xl mx-auto px-4 pt-6 pb-2">
+        <h1 className="font-headline font-bold text-xl text-center text-cyan-400 tracking-[0.3em] uppercase drop-shadow-[0_0_10px_rgba(34,211,238,1)] leading-none">
+          The Archives
+        </h1>
+        <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent mt-2 mx-auto" />
+      </div>
 
       {/* Hall Content */}
       <div className="max-w-3xl mx-auto p-4 space-y-4 pt-8">

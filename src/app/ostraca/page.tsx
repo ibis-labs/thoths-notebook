@@ -586,15 +586,6 @@ export default function OstracaPage() {
           <span className="font-headline font-bold text-[8px] tracking-widest uppercase text-violet-300 mt-0.5">IPHTY LINK</span>
         </button>
 
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            onClick={() => setShowAddCollection(true)}
-            className="flex items-center gap-2 px-4 py-2 border-2 border-cyan-500/60 text-cyan-400 rounded-lg font-body font-bold text-sm tracking-wider transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150"
-          >
-            <FolderPlus className="w-4 h-4" />
-            <span className="hidden sm:block">New Collection</span>
-          </button>
-        </div>
       </div>
 
       {/* PAGE TITLE */}
@@ -616,6 +607,17 @@ export default function OstracaPage() {
 
       {/* ── EPHEMERA PINNED TILE ─────────────────────────────── */}
       <EphemeraCard tile={ephemeraTile} onClick={() => setShowEphemera(true)} />
+
+      {/* ── NEW COLLECTION ──────────────────────────────────── */}
+      <div className="mb-4">
+        <button
+          onClick={() => setShowAddCollection(true)}
+          className="flex items-center gap-2 px-4 py-2 border-2 border-cyan-500/60 text-cyan-400 rounded-lg font-body font-bold text-sm tracking-wider transition-[transform,filter] duration-75 active:scale-[0.95] active:brightness-150"
+        >
+          <FolderPlus className="w-4 h-4" />
+          New Collection
+        </button>
+      </div>
 
       {/* ── COLLECTION TABS ─────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 mb-6">

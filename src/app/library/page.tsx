@@ -39,10 +39,6 @@ export default function LibraryPage() {
             To Main Hall
           </span>
         </button>
-        
-        <h1 className="font-display font-bold text-2xl text-rose-400 tracking-[0.3em] uppercase drop-shadow-[0_0_12px_rgba(244,63,94,0.7)]">
-          Grand Library
-        </h1>
 
         <div className="flex flex-col gap-2 items-center">
           <button
@@ -62,7 +58,15 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-6 pt-24 flex flex-col items-center text-center space-y-12">
+      {/* 🏛️ PAGE TITLE */}
+      <div className="max-w-4xl mx-auto px-6 pt-8 pb-2 text-center">
+        <h1 className="font-display font-bold text-2xl text-rose-400 tracking-[0.3em] uppercase drop-shadow-[0_0_12px_rgba(244,63,94,0.7)]">
+          Grand Library
+        </h1>
+        <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-rose-500/60 to-transparent mt-2 mx-auto" />
+      </div>
+
+      <div className="max-w-4xl mx-auto p-6 pt-6 flex flex-col items-center text-center space-y-12">
         
         {/* 🛠️ RESTORATION ALTAR */}
         <div className="relative group">
