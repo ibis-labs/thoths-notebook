@@ -27,6 +27,7 @@ import {
   Landmark,
   Calendar,
   Package,
+  Stars,
 } from "lucide-react";
 import { OstraconIcon } from "@/components/icons/ostracon-icon";
 import { IphtyLinkIcon } from "@/components/icons/IphtyLinkIcon";
@@ -172,9 +173,15 @@ export function AppSidebar({ activeCategory, setActiveCategory }: AppSidebarProp
           </SidebarMenuButton>
           <SidebarMenuButton asChild className="text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 group w-full justify-start pl-2 transition-all duration-300">
             <Link href="/library">
-              {/* This is the placeholder for your Seshet Star! */}
               <Landmark className="w-4 h-4 mr-2 group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(244,63,94,0.6)] transition-all duration-500" />
               <span className="font-bold tracking-wide">Grand Library</span>
+            </Link>
+          </SidebarMenuButton>
+
+          <SidebarMenuButton asChild className="text-fuchsia-400 hover:text-fuchsia-300 hover:bg-fuchsia-950/50 group w-full justify-start pl-2 transition-all duration-300">
+            <Link href="/SeshatInterface">
+              <Stars className="w-4 h-4 mr-2 group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(185,21,204,0.6)] transition-all duration-500" />
+              <span className="font-bold tracking-wide">Seshat Interface</span>
             </Link>
           </SidebarMenuButton>
           <SidebarMenuButton asChild className="text-amber-400 hover:text-amber-300 hover:bg-amber-950/50 group w-full justify-start pl-2">

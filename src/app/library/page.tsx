@@ -1,29 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { OstraconIconLarge } from "@/components/icons/ostracon-icon-large";
-import { Button } from "@/components/ui/button";
 import { FirstPylonIcon } from "@/components/icons/FirstPylonIcon";
 import { IphtyLinkDuckIcon } from "@/components/icons/IphtyLinkDuckIcon";
 import { 
-  Sparkles, 
-  Hammer,
-  Construction
+  BookOpen
 } from "lucide-react";
-
-/* SACRED ARCHIVES UNDER RESTORATION
-  The portals below are commented out until the Grand Library 
-  is ready for the High Architects.
-*/
-
-/*
-const libraryPortals = [
-  ... (Keep your existing array here, just commented out)
-];
-*/
+import SebaytConsole from "./sebayt-console";
 
 export default function LibraryPage() {
   const router = useRouter();
+  const [showSebayt, setShowSebayt] = useState(false);
 
   return (
     <main className="min-h-screen bg-black text-rose-100 font-sans selection:bg-rose-500/30 overflow-y-auto pb-20 custom-scrollbar">
@@ -68,19 +57,28 @@ export default function LibraryPage() {
 
       <div className="max-w-4xl mx-auto p-6 pt-6 flex flex-col items-center text-center space-y-12">
         
-        {/* 🛠️ RESTORATION ALTAR */}
-        <div className="relative group">
-          <div className="absolute -inset-8 bg-rose-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="relative p-12 rounded-[3rem] border-2 border-dashed border-rose-500/30 bg-rose-950/5 backdrop-blur-sm">
-            <Construction className="w-20 h-20 text-rose-500/40 mx-auto mb-6" />
-            <h2 className="text-3xl font-display font-bold text-rose-100 uppercase tracking-[0.25em] mb-4">
-              Restoration in Progress
-            </h2>
-            <p className="text-zinc-400 font-body max-w-md mx-auto leading-relaxed uppercase text-xs tracking-widest">
-              The Divine Architects are currently transcribing the sacred scrolls. 
-              The Chamber of Knowledge will open when the ink of Thoth is dry.
-            </p>
-          </div>
+        {/* THE GOLDEN GRID */}
+        <div className="w-full max-w-4xl text-left">
+          {/* Sebayt Console Portal */}
+          <button 
+            onClick={() => setShowSebayt(true)}
+            className="w-full p-6 rounded-xl border-2 border-amber-400 ring-1 ring-amber-500/40 ring-offset-1 ring-offset-black bg-gradient-to-r from-amber-950/20 via-slate-950/60 to-[#0a0f1e] shadow-[0_0_18px_rgba(245,158,11,0.35)] transition-[transform,filter] duration-75 text-left active:scale-[0.98] active:brightness-125 group flex flex-col gap-3"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <BookOpen className="text-amber-400 w-6 h-6" />
+                <span className="font-headline text-lg text-amber-400 tracking-[0.2em] uppercase">Sebayt Console (User Guide)</span>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <span className="text-xs font-mono text-amber-600 uppercase tracking-wider group-hover:text-amber-400 transition-colors">
+                  open ›
+                </span>
+              </div>
+            </div>
+            <div className="mt-2 text-sm font-mono text-slate-400 group-hover:text-slate-300 transition-colors">
+              A technical manual for navigating Thoth's Notebook and the Ptah Network.
+            </div>
+          </button>
         </div>
 
         {/* 🏺 FOOTER INSCRIPTION */}
@@ -90,6 +88,15 @@ export default function LibraryPage() {
         </div>
 
       </div>
+
+      {/* SEBAYT CONSOLE OVERLAY */}
+      {showSebayt && (
+        <div className="fixed inset-0 z-[110] bg-black/95 flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
+          <div className="w-full max-w-6xl h-full">
+            <SebaytConsole onClose={() => setShowSebayt(false)} />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

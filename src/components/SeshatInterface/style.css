@@ -1,0 +1,255 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #050505; /* Deep Obsidian */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#terminal-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 100px; /* This keeps the buttons from overlapping! */
+}
+
+/* ── Artifact Button Frame ────────────────────────────────────────────── */
+
+.artifact {
+    width: 150px;
+    height: auto;
+    padding: 16px 14px;
+    position: relative;
+    display: block;
+    cursor: pointer;
+
+    /* Stone-dark panel */
+    background-color: rgba(2, 4, 6, 0.88);
+    /* Subtle CRT scanlines */
+    background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 0, 0, 0.13) 3px,
+        rgba(0, 0, 0, 0.13) 4px
+    );
+
+    /* Double border: inner 1px via border, outer 2px via outline */
+    border-radius: 10px;
+
+    /* Double border: inner 1px via border, outer 2px via outline */
+    border: 1px solid currentColor;
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+
+    transition: all 0.3s ease;
+}
+
+.artifact:hover {
+    transform: scale(1.05);
+    background-color: rgba(5, 10, 15, 0.95);
+    filter: brightness(1.6) drop-shadow(0 0 25px currentColor);
+}
+/* ── Per-Artifact Colors & Breathing Animations ───────────────────────── */
+
+/* Neon Green — Ka-Touche */
+#ka-button {
+    color: #39FF14;
+    width: 150px;
+    padding: 10px;
+    animation: pulse-green 4s infinite ease-in-out;
+}
+@keyframes pulse-green {
+    0%, 100% {
+        filter: drop-shadow(0 0 5px #39FF14);
+        box-shadow:
+            inset 0 0 10px rgba(57,255,20,0.10),   /* inner glow */
+            0 0 8px #1a7a06,                        /* outer near */
+            0 0 0 4px rgba(57,255,20,0.12);         /* gap fill between borders */
+        outline-color: rgba(57,255,20,0.55);
+        opacity: 0.85;
+    }
+    50% {
+        filter: drop-shadow(0 0 22px #39FF14);
+        box-shadow:
+            inset 0 0 22px rgba(57,255,20,0.28),
+            0 0 24px #39FF14,
+            0 0 0 4px rgba(57,255,20,0.35);
+        outline-color: #39FF14;
+        opacity: 1;
+    }
+}
+
+/* Cyber Cyan — Thoth Chip */
+#thoth-button {
+    color: #1faafe;
+    --thoth-frame:        4.2;  /* ← outer rect + pins              */
+    --thoth-detail:       2.1;  /* ← stroke lines (circuits, head…) */
+    --thoth-fill-opacity: 0.95; /* ← beak, crest, node fills        */
+    animation: pulse-cyan 4s infinite ease-in-out;
+}
+#thoth-button svg * {
+    stroke-width: var(--thoth-detail) !important;
+}
+#thoth-button #rect1,
+#thoth-button #g29,
+#thoth-button #g29 *,
+#thoth-button #g29-1,
+#thoth-button #g29-1 *,
+#thoth-button #g29-1-4,
+#thoth-button #g29-1-4 *,
+#thoth-button #g29-1-4-7,
+#thoth-button #g29-1-4-7 * {
+    stroke-width: var(--thoth-frame) !important;
+}
+/* Filled shapes (beak, crest, diagonal, node) — controlled separately
+   because fill:currentColor is immune to stroke-width changes */
+#thoth-button #path8,
+#thoth-button #path5,
+#thoth-button #path9,
+#thoth-button #path12,
+#thoth-button #path14,
+#thoth-button #path16,
+#thoth-button #path18 {
+    fill-opacity: var(--thoth-fill-opacity) !important;
+}
+@keyframes pulse-cyan {
+    0%, 100% {
+        filter: drop-shadow(0 0 5px #4DDCF4);
+        box-shadow:
+            inset 0 0 10px rgba(77,220,244,0.10),
+            0 0 8px #0d6575,
+            0 0 0 4px rgba(77,220,244,0.12);
+        outline-color: rgba(77,220,244,0.55);
+        opacity: 0.8;
+    }
+    50% {
+        filter: drop-shadow(0 0 22px #4DDCF4);
+        box-shadow:
+            inset 0 0 22px rgba(77,220,244,0.28),
+            0 0 24px #4DDCF4,
+            0 0 0 4px rgba(77,220,244,0.35);
+        outline-color: #4DDCF4;
+        opacity: 1;
+    }
+}
+
+/* Duamutef Red — Canopic Jar */
+#duamutef-button {
+    color: #FF0000;
+    width: 75px;
+    animation: pulse-red 3s infinite ease-in-out;
+}
+@keyframes pulse-red {
+    0%, 100% {
+        filter: drop-shadow(0 0 4px #a31b1b);
+        box-shadow:
+            inset 0 0 10px rgba(255,0,0,0.10),
+            0 0 6px #6b0000,
+            0 0 0 4px rgba(255,0,0,0.12);
+        outline-color: rgba(255,0,0,0.50);
+        opacity: 0.75;
+    }
+    50% {
+        filter: drop-shadow(0 0 24px #FF0000);
+        box-shadow:
+            inset 0 0 22px rgba(255,0,0,0.25),
+            0 0 22px #FF0000,
+            0 0 0 4px rgba(255,0,0,0.35);
+        outline-color: #FF0000;
+        opacity: 1;
+    }
+}
+
+/* Thoth Purple — Seshat */
+#seshat-button {
+    color: #B915CC;
+    width: 185px;
+    animation: pulse-purple 4s infinite ease-in-out;
+}
+@keyframes pulse-purple {
+    0%, 100% {
+        filter: drop-shadow(0 0 5px #B915CC);
+        box-shadow:
+            inset 0 0 10px rgba(185,21,204,0.10),
+            0 0 8px #6b0a78,
+            0 0 0 4px rgba(185,21,204,0.12);
+        outline-color: rgba(185,21,204,0.55);
+        opacity: 0.80;
+    }
+    50% {
+        filter: drop-shadow(0 0 22px #B915CC);
+        box-shadow:
+            inset 0 0 22px rgba(185,21,204,0.28),
+            0 0 24px #B915CC,
+            0 0 0 4px rgba(185,21,204,0.35);
+        outline-color: #B915CC;
+        opacity: 1;
+    }
+}
+
+/* Inner glow pulse for jar body, head, and eyes */
+.animate-pulse-glow {
+    animation: inner-glow-amber 3s infinite ease-in-out;
+}
+@keyframes inner-glow-amber {
+    0%, 100% { opacity: 0.85; }
+    50%       { opacity: 1;    }
+}
+
+/* Cyan hair-strand shimmer */
+.animate-pulse-glow-red {
+    stroke: #fb2020;
+    animation: inner-glow-cyan 3s infinite ease-in-out;
+}
+@keyframes inner-glow-cyan {
+    0%, 100% { opacity: 0.5; stroke: #b86807; }
+    50%       { opacity: 1;   stroke: #945202; }
+}
+
+/* Seshat Control Panel launch button */
+#seshat-panel-button {
+    color: #B915CC;
+    width: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 10px 8px;
+    animation: pulse-purple 4s infinite ease-in-out;
+}
+.scp-icon {
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+}
+.scp-label {
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: currentColor;
+    text-align: center;
+    line-height: 1.5;
+    opacity: 0.75;
+}
+#seshat-panel-button:hover .scp-label {
+    opacity: 1;
+}
+
+/*Cyber Egyptian Vibe Colors
+
+Color         ,HSL Value  ,Hex Equivalent,Feel
+
+Duamutef Red, 0 100% 50%,   #FF0000,  The Red-Headed Protector
+Cyber Cyan,   180 100% 50%, #00FFFF,  Electric Nile Water
+Ankh Gold,    45 100% 50%,  #FFC000,  Radiance of Ra
+Silver,       0 0% 75%,     #C0C0C0,  Metallic Moon-glow
+Thoth Purple, 280 100% 60%, #B915CC,  Magic & Secret Wisdom
+Neon Lime,    110 100% 50%, #39FF14,  Primordial Vitality
+
+*/
