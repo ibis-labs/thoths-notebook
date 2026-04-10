@@ -489,6 +489,9 @@ export function useIphtyMessageNotifications(): void {
   const { user } = useAuth();
   const { toast } = useToast();
   const notifInitializedRef = useRef(false);
+  // Tracks the lastMessageAt ms per link so we only fire once per distinct message,
+  // even if Firestore emits multiple snapshots (cache, hasPendingWrites, server-confirmed).
+  const lastNotifiedAtRef = useRef<Map<string, number>>(new Map());
 
   // Register the service worker and request notification permission once
   useEffect(() => {
@@ -521,6 +524,7 @@ export function useIphtyMessageNotifications(): void {
   useEffect(() => {
     if (!user) {
       notifInitializedRef.current = false;
+      lastNotifiedAtRef.current.clear();
       return;
     }
 
@@ -531,26 +535,35 @@ export function useIphtyMessageNotifications(): void {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      // Skip cache-only snapshots — Firestore emits one from local cache and
-      // one from the server for the same change, which would fire two notifications.
-      if (snap.metadata.fromCache) return;
-
-      // The very first snapshot is the initial load — all docs come through
-      // as 'added'. Skip it so we don't notify for stale messages.
+      // Seed baseline on first snapshot — never notify for messages already present.
       if (!notifInitializedRef.current) {
+        for (const d of snap.docs) {
+          const ms: number = d.data().lastMessageAt?.toMillis?.() ?? 0;
+          lastNotifiedAtRef.current.set(d.id, ms);
+        }
         notifInitializedRef.current = true;
         return;
       }
 
       for (const change of snap.docChanges()) {
-        // Only care about documents that were modified (new message sent)
-        if (change.type !== 'modified') continue;
+        if (change.type !== 'modified' && change.type !== 'added') continue;
 
         const data = change.doc.data();
 
         // No message timestamp, or I sent it — skip
         if (!data.lastMessageAt) continue;
         if (data.lastMessageSenderId === user.uid) continue;
+
+        const currentMs: number = data.lastMessageAt?.toMillis?.() ?? 0;
+        const lastNotifiedMs = lastNotifiedAtRef.current.get(change.doc.id) ?? 0;
+
+        // Already fired a notification for this exact message timestamp — skip.
+        // This deduplicates across multiple Firestore snapshot deliveries
+        // (fromCache, hasPendingWrites, server-confirmed) for the same write.
+        if (currentMs <= lastNotifiedMs) continue;
+
+        // Update the tracking ref immediately before any async work
+        lastNotifiedAtRef.current.set(change.doc.id, currentMs);
 
         // Conversation is currently open — skip
         const activeLinkId = localStorage.getItem('iphty_active_link');
@@ -621,6 +634,7 @@ export function useIphtyMessageNotifications(): void {
     return () => {
       unsub();
       notifInitializedRef.current = false;
+      lastNotifiedAtRef.current.clear();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
