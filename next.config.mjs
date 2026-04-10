@@ -1,8 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // If you had specific PWA settings or image domains, they go here.
-  // For now, we start with the standard clean config.
   reactStrictMode: true,
+  async headers() {
+    return [
+      {
+        // Allow the service worker to control the entire origin
+        source: '/sw.js',
+        headers: [
+          { key: 'Service-Worker-Allowed', value: '/' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

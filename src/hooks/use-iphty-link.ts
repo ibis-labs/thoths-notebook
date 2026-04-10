@@ -494,16 +494,27 @@ export function useIphtyMessageNotifications(): void {
   useEffect(() => {
     if (!user || typeof window === 'undefined') return;
 
-    // Register SW so showNotification() uses the app icon, not the browser icon
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
-        console.warn('[Iphty SW] Registration failed:', err);
-      });
-    }
+    const setup = async () => {
+      // Request permission first
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission().catch(() => {});
+      }
 
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => {/* silently ignore */});
-    }
+      // Register SW — skip if already controlling this page
+      if (!('serviceWorker' in navigator)) return;
+      try {
+        const existing = await navigator.serviceWorker.getRegistration('/sw.js');
+        if (!existing) {
+          await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        }
+        // Wait for it to become active before the Firestore listener starts
+        await navigator.serviceWorker.ready;
+      } catch (err) {
+        console.warn('[Iphty SW] Registration failed:', err);
+      }
+    };
+
+    setup();
   }, [user]);
 
   useEffect(() => {
@@ -551,9 +562,11 @@ export function useIphtyMessageNotifications(): void {
           Notification.permission === 'granted' &&
           'serviceWorker' in navigator
         ) {
+          console.log('[Iphty] Firing SW notification for', senderName);
           navigator.serviceWorker.ready
             .then((registration) => {
-              registration.showNotification('New Iphty Transmission', {
+              console.log('[Iphty] SW ready, calling showNotification');
+              return registration.showNotification('New Iphty Transmission', {
                 body: `${senderName} sent you an encrypted message.`,
                 icon: '/icons/iphty-link-duck-notification-icon-512.svg',
                 image: '/icons/iphty-link-duck-notification-icon-512.svg',
@@ -561,11 +574,10 @@ export function useIphtyMessageNotifications(): void {
                 tag: `iphty-msg-${change.doc.id}`,
                 renotify: true,
                 data: { url: '/iphty-link' },
-              });
+              } as NotificationOptions);
             })
             .catch((err) => {
-              console.error('[Iphty] SW notification failed:', err);
-              // Fallback to plain notification
+              console.error('[Iphty] SW notification failed, falling back:', err);
               try {
                 new Notification('New Iphty Transmission', {
                   body: `${senderName} sent you an encrypted message.`,
@@ -575,6 +587,7 @@ export function useIphtyMessageNotifications(): void {
               } catch {/* silently ignore */}
             });
         } else {
+          console.log('[Iphty] Notification skipped — permission:', 'Notification' in window ? Notification.permission : 'unsupported', '| SW:', 'serviceWorker' in navigator);
           // In-app toast fallback when OS notifications are unavailable
           toast({
             title: '𓅭 New Iphty Transmission',
