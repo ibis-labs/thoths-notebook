@@ -16,6 +16,7 @@ import Link from "next/link";
 import { PtahManager } from "@/components/ptah-manager";
 import { PromotionNotification } from "@/components/promotion-notification";
 import { useAuth } from "@/components/auth-provider";
+import { useIphtyMessageNotifications } from "@/hooks/use-iphty-link";
 
 // ── Priority context ──────────────────────────────────────────────────────
 
@@ -63,6 +64,13 @@ function NeedsFinalSealBanner() {
     </div>
   );
 }
+
+// Renders nothing — exists only to mount the always-on notification listener.
+function IphtyNotificationMount() {
+  useIphtyMessageNotifications();
+  return null;
+}
+
 export function GlobalBanners() {
   const [promotionActive, setPromotionActiveState] = useState(false);
 
@@ -72,6 +80,9 @@ export function GlobalBanners() {
 
   return (
     <BannerPriorityContext.Provider value={{ promotionActive, setPromotionActive }}>
+      {/* Always-on Iphty message notification listener */}
+      <IphtyNotificationMount />
+
       {/* PromotionNotification is always mounted — it owns its own Firestore listener
           and calls setPromotionActive(true/false) as the pendingPromotion field appears. */}
       <PromotionNotification />

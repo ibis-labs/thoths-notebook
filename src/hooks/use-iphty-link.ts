@@ -60,6 +60,8 @@ function normalizeLink(id: string, data: Record<string, any>): IphtyLink {
     status: data.status ?? 'pending',
     createdAt: data.createdAt?.toDate?.() ?? new Date(),
     updatedAt: data.updatedAt?.toDate?.() ?? new Date(),
+    lastMessageAt: data.lastMessageAt?.toDate?.() ?? undefined,
+    lastMessageSenderId: data.lastMessageSenderId ?? undefined,
   };
 }
 
@@ -127,11 +129,14 @@ export function useIphtyLink() {
     init();
   }, [user, masterKey]);
 
+  const [unreadLinkIds, setUnreadLinkIds] = useState<Set<string>>(new Set());
+
   // --- LISTEN: All IphtyLinks where current user is a participant -----------
   useEffect(() => {
     if (!user) {
       setLinks([]);
       setLoading(false);
+      setUnreadLinkIds(new Set());
       return;
     }
 
@@ -154,6 +159,18 @@ export function useIphtyLink() {
           setActiveLinkState(updated);
         }
       }
+
+      // ── Compute per-link unread badge state (for tile indicators) ─────
+      const newUnread = new Set<string>();
+      for (const link of result) {
+        if (link.status !== 'active') continue;
+        if (!link.lastMessageAt || link.lastMessageSenderId === user.uid) continue;
+        const lastSeen = parseInt(localStorage.getItem(`iphty_seen_${link.id}`) ?? '0', 10);
+        if (link.lastMessageAt.getTime() > lastSeen) {
+          newUnread.add(link.id);
+        }
+      }
+      setUnreadLinkIds(newUnread);
     });
 
     return () => unsub();
@@ -244,8 +261,16 @@ export function useIphtyLink() {
       activeLinkRef.current = link;
       setActiveLinkState(link);
       await getConversationKey(link);
-      // Mark as seen so the sidebar node stops blinking
+      // Mark as seen so the sidebar node stops blinking and tile badge clears
       localStorage.setItem(`iphty_seen_${link.id}`, Date.now().toString());
+      // Signal to the global notification hook that this conversation is open
+      localStorage.setItem('iphty_active_link', link.id);
+      // Remove from unread set immediately
+      setUnreadLinkIds((prev) => {
+        const next = new Set(prev);
+        next.delete(link.id);
+        return next;
+      });
     },
     [getConversationKey]
   );
@@ -254,6 +279,7 @@ export function useIphtyLink() {
     activeLinkRef.current = null;
     setActiveLinkState(null);
     setMessages([]);
+    localStorage.removeItem('iphty_active_link');
   }, []);
 
   // --- ACTION: Generate a one-time invitation code -------------------------
@@ -413,6 +439,7 @@ export function useIphtyLink() {
     messages,
     messagesLoading,
     activeLinks,
+    unreadLinkIds,
     openConversation,
     closeConversation,
     generateInvitationCode,
@@ -453,4 +480,113 @@ export function useIphtyNodeActive(): boolean {
   }, [user]);
 
   return nodeActive;
+}
+
+// ─── Always-on hook: fires OS notifications for new Iphty messages ────────────
+// Mount this in GlobalBanners (root layout) so it runs on every page,
+// not just the Iphty Link page.
+export function useIphtyMessageNotifications(): void {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const notifInitializedRef = useRef(false);
+
+  // Register the service worker and request notification permission once
+  useEffect(() => {
+    if (!user || typeof window === 'undefined') return;
+
+    // Register SW so showNotification() uses the app icon, not the browser icon
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('[Iphty SW] Registration failed:', err);
+      });
+    }
+
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {/* silently ignore */});
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      notifInitializedRef.current = false;
+      return;
+    }
+
+    const q = query(
+      collection(db, 'iphtyLinks'),
+      where('participants', 'array-contains', user.uid),
+      where('status', '==', 'active')
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      // The very first snapshot is the initial load — all docs come through
+      // as 'added'. Skip it so we don't notify for stale messages.
+      if (!notifInitializedRef.current) {
+        notifInitializedRef.current = true;
+        return;
+      }
+
+      for (const change of snap.docChanges()) {
+        // Only care about documents that were modified (new message sent)
+        if (change.type !== 'modified') continue;
+
+        const data = change.doc.data();
+
+        // No message timestamp, or I sent it — skip
+        if (!data.lastMessageAt) continue;
+        if (data.lastMessageSenderId === user.uid) continue;
+
+        // Conversation is currently open — skip
+        const activeLinkId = localStorage.getItem('iphty_active_link');
+        if (activeLinkId === change.doc.id) continue;
+
+        const senderName =
+          data.requestorId === user.uid
+            ? (data.requesteeDisplayName ?? 'Unknown Scribe')
+            : (data.requestorDisplayName ?? 'Unknown Scribe');
+
+        // Try service-worker notification first (shows app icon in taskbar)
+        if (
+          'Notification' in window &&
+          Notification.permission === 'granted' &&
+          'serviceWorker' in navigator
+        ) {
+          navigator.serviceWorker.ready
+            .then((registration) => {
+              registration.showNotification('New Iphty Transmission', {
+                body: `${senderName} sent you an encrypted message.`,
+                icon: '/icons/iphty-link-duck-notification-icon-512.svg',
+                image: '/icons/iphty-link-duck-notification-icon-512.svg',
+                badge: '/icons/iphty-link-duck-notification-icon-512.svg',
+                tag: `iphty-msg-${change.doc.id}`,
+                renotify: true,
+                data: { url: '/iphty-link' },
+              });
+            })
+            .catch((err) => {
+              console.error('[Iphty] SW notification failed:', err);
+              // Fallback to plain notification
+              try {
+                new Notification('New Iphty Transmission', {
+                  body: `${senderName} sent you an encrypted message.`,
+                  icon: '/icons/iphty-link-duck-notification-icon-512.svg',
+                  tag: `iphty-msg-${change.doc.id}`,
+                });
+              } catch {/* silently ignore */}
+            });
+        } else {
+          // In-app toast fallback when OS notifications are unavailable
+          toast({
+            title: '𓅭 New Iphty Transmission',
+            description: `${senderName} sent you an encrypted message.`,
+          });
+        }
+      }
+    });
+
+    return () => {
+      unsub();
+      notifInitializedRef.current = false;
+    };
+  }, [user, toast]);
 }

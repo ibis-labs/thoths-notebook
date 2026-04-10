@@ -33,6 +33,7 @@ export default function IphtyLinkPage() {
     messages,
     messagesLoading,
     activeLinks,
+    unreadLinkIds,
     openConversation,
     closeConversation,
     generateInvitationCode,
@@ -199,6 +200,7 @@ export default function IphtyLinkPage() {
                   link={link}
                   myUid={user.uid}
                   isActive={activeLink?.id === link.id}
+                  hasUnread={unreadLinkIds.has(link.id)}
                   onClick={() => handleOpenConversation(link)}
                 />
               ))

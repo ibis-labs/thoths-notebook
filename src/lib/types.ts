@@ -127,6 +127,8 @@ export type IphtyLink = {
   status: IphtyLinkStatus;
   createdAt: Date;
   updatedAt: Date;
+  lastMessageAt?: Date;
+  lastMessageSenderId?: string;
 };
 
 export type IphtyMessage = {
