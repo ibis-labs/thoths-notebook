@@ -50,6 +50,15 @@ export default function IphtyLinkPage() {
     if (!authLoading && !user) router.push('/login');
   }, [user, authLoading, router]);
 
+  // Clear the active-link flag when the page unmounts so the global
+  // notification hook doesn't keep suppressing notifications after the
+  // user navigates away via the sidebar (without hitting the back button).
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem('iphty_active_link');
+    };
+  }, []);
+
   const handleOpenConversation = async (link: typeof activeLink) => {
     if (!link) return;
     await openConversation(link);

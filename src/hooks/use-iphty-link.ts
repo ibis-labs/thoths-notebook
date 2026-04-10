@@ -531,6 +531,10 @@ export function useIphtyMessageNotifications(): void {
     );
 
     const unsub = onSnapshot(q, (snap) => {
+      // Skip cache-only snapshots — Firestore emits one from local cache and
+      // one from the server for the same change, which would fire two notifications.
+      if (snap.metadata.fromCache) return;
+
       // The very first snapshot is the initial load — all docs come through
       // as 'added'. Skip it so we don't notify for stale messages.
       if (!notifInitializedRef.current) {
