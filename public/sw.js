@@ -10,6 +10,24 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
+// Page sends { type: 'SHOW_NOTIFICATION', title, body, icon, image, badge, tag, url }
+// We show it from SW context so Android uses the app icon, not the browser icon.
+self.addEventListener('message', (event) => {
+  if (!event.data || event.data.type !== 'SHOW_NOTIFICATION') return;
+  const { title, body, icon, image, badge, tag, url } = event.data;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      image,
+      badge,
+      tag,
+      renotify: true,
+      data: { url: url ?? '/iphty-link' },
+    })
+  );
+});
+
 // Open / focus the Iphty Link page when the user taps a notification
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -19,7 +37,6 @@ self.addEventListener('notificationclick', (event) => {
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // If the app is already open somewhere, focus it and navigate
         for (const client of clientList) {
           if ('focus' in client) {
             client.focus();
@@ -27,7 +44,6 @@ self.addEventListener('notificationclick', (event) => {
             return;
           }
         }
-        // Otherwise open a new window
         if (clients.openWindow) {
           return clients.openWindow(targetUrl);
         }

@@ -11,7 +11,7 @@
  * This eliminates the visual stack-collision and any timing race between them.
  */
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import Link from "next/link";
 import { PtahManager } from "@/components/ptah-manager";
 import { PromotionNotification } from "@/components/promotion-notification";
@@ -71,6 +71,18 @@ function IphtyNotificationMount() {
   return null;
 }
 
+// Globally suppresses Chrome's built-in PWA install prompt / "Tap to copy URL"
+// notification on every page. Our custom PwaInstallPrompt on the home page
+// owns the deferred event and shows its own branded UI instead.
+function GlobalInstallPromptSuppressor() {
+  useEffect(() => {
+    const handler = (e: Event) => e.preventDefault();
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+  return null;
+}
+
 export function GlobalBanners() {
   const [promotionActive, setPromotionActiveState] = useState(false);
 
@@ -80,6 +92,9 @@ export function GlobalBanners() {
 
   return (
     <BannerPriorityContext.Provider value={{ promotionActive, setPromotionActive }}>
+      {/* Suppress Chrome's native install prompt/URL notification on every page */}
+      <GlobalInstallPromptSuppressor />
+
       {/* Always-on Iphty message notification listener */}
       <IphtyNotificationMount />
 

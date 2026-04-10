@@ -561,36 +561,52 @@ export function useIphtyMessageNotifications(): void {
             ? (data.requesteeDisplayName ?? 'Unknown Scribe')
             : (data.requestorDisplayName ?? 'Unknown Scribe');
 
-        // Try service-worker notification first (shows app icon in taskbar)
         if (
           'Notification' in window &&
           Notification.permission === 'granted' &&
           'serviceWorker' in navigator
         ) {
-          console.log('[Iphty] Firing SW notification for', senderName);
-          navigator.serviceWorker.ready
-            .then((registration) => {
-              console.log('[Iphty] SW ready, calling showNotification');
-              return registration.showNotification('New Iphty Transmission', {
-                body: `${senderName} sent you an encrypted message.`,
-                icon: '/icons/iphty-link-duck-notification-icon-512.svg',
-                image: '/icons/iphty-link-duck-notification-icon-512.svg',
-                badge: '/icons/iphty-link-duck-notification-icon-512.svg',
-                tag: `iphty-msg-${change.doc.id}`,
+          const notifPayload = {
+            type: 'SHOW_NOTIFICATION',
+            title: 'New Iphty Transmission',
+            body: `${senderName} sent you an encrypted message.`,
+            icon: '/icons/iphty-link-duck-notification-icon-512.svg',
+            image: '/icons/iphty-link-duck-notification-icon-512.svg',
+            badge: '/icons/iphty-link-duck-notification-icon-512.svg',
+            tag: `iphty-msg-${change.doc.id}`,
+            url: '/iphty-link',
+          };
+
+          // Prefer posting to the active SW controller — it shows the notification
+          // from SW context which guarantees the app icon, not the browser icon.
+          const controller = navigator.serviceWorker.controller;
+          if (controller) {
+            console.log('[Iphty] Posting SHOW_NOTIFICATION to SW controller');
+            controller.postMessage(notifPayload);
+          } else {
+            // Controller not yet set (first load) — fall back to registration
+            console.log('[Iphty] No controller, using registration.showNotification');
+            navigator.serviceWorker.ready
+              .then((reg) => reg.showNotification(notifPayload.title, {
+                body: notifPayload.body,
+                icon: notifPayload.icon,
+                image: notifPayload.image,
+                badge: notifPayload.badge,
+                tag: notifPayload.tag,
                 renotify: true,
                 data: { url: '/iphty-link' },
-              } as NotificationOptions);
-            })
-            .catch((err) => {
-              console.error('[Iphty] SW notification failed, falling back:', err);
-              try {
-                new Notification('New Iphty Transmission', {
-                  body: `${senderName} sent you an encrypted message.`,
-                  icon: '/icons/iphty-link-duck-notification-icon-512.svg',
-                  tag: `iphty-msg-${change.doc.id}`,
-                });
-              } catch {/* silently ignore */}
-            });
+              } as NotificationOptions))
+              .catch((err) => {
+                console.error('[Iphty] SW notification failed:', err);
+                try {
+                  new Notification(notifPayload.title, {
+                    body: notifPayload.body,
+                    icon: notifPayload.icon,
+                    tag: notifPayload.tag,
+                  });
+                } catch {/* ignore */}
+              });
+          }
         } else {
           console.log('[Iphty] Notification skipped — permission:', 'Notification' in window ? Notification.permission : 'unsupported', '| SW:', 'serviceWorker' in navigator);
           // In-app toast fallback when OS notifications are unavailable
