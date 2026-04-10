@@ -515,7 +515,8 @@ export function useIphtyMessageNotifications(): void {
     };
 
     setup();
-  }, [user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user) {
@@ -601,5 +602,6 @@ export function useIphtyMessageNotifications(): void {
       unsub();
       notifInitializedRef.current = false;
     };
-  }, [user, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 }
