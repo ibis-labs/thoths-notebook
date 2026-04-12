@@ -3,6 +3,8 @@
 import { SeshatInterface } from "@/components/SeshatInterface/SeshatInterface";
 import { useRouter } from "next/navigation";
 import { FirstPylonIcon } from "@/components/icons/FirstPylonIcon";
+import { BookOpen } from "lucide-react";
+import Link from "next/link";
 
 export default function SeshatPage() {
   const router = useRouter();
@@ -27,6 +29,16 @@ export default function SeshatPage() {
             Seshat Interface
           </h1>
           <p className="text-[10px] uppercase tracking-[0.5em] font-display text-fuchsia-300/50">Cosmic Arithmetics</p>
+          <Link
+            href="/library"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-700/40 bg-amber-950/20
+              text-amber-500/80 text-[9px] font-display uppercase tracking-widest
+              hover:bg-amber-900/30 hover:text-amber-400 hover:border-amber-500/50
+              active:scale-95 transition-all"
+          >
+            <BookOpen className="w-3 h-3" />
+            Grand Library
+          </Link>
         </div>
       </div>
 

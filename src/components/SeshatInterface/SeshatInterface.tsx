@@ -424,26 +424,217 @@ function CalculusMode() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MINI KEYBOARD — visualises root + interval pitch classes
+// ─────────────────────────────────────────────────────────────────────────────
+function freqToPitchClass(f: number): number {
+  if (f <= 0 || !isFinite(f)) return -1;
+  const midi = Math.round(69 + 12 * Math.log2(f / 440));
+  return ((midi % 12) + 12) % 12;
+}
+
+// Pitch classes for white keys in octave order: C D E F G A B
+const WHITE_PC = [0, 2, 4, 5, 7, 9, 11];
+// Black key positions as fractional white-key offsets + their pitch classes
+const BLACK_KEYS = [
+  { wi: 0.68, pc: 1  },
+  { wi: 1.68, pc: 3  },
+  { wi: 3.68, pc: 6  },
+  { wi: 4.68, pc: 8  },
+  { wi: 5.68, pc: 10 },
+];
+
+function MiniKeyboard({ rootPc, resultPc }: { rootPc: number; resultPc: number }) {
+  const WW = 14, WH = 52, BW = 9, BH = 32;
+  const OCTAVES = 2;
+  const totalW = OCTAVES * 7 * WW;
+
+  const keyColor = (pc: number, isBlack: boolean) => {
+    const isRoot   = pc === rootPc;
+    const isResult = pc === resultPc;
+    if (isRoot && isResult) return "#c026d3"; // unison/octave — fused magenta
+    if (isRoot)   return "#a855f7"; // violet
+    if (isResult) return "#f59e0b"; // amber
+    return isBlack ? "#1a0828" : "#0e0118";
+  };
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-fuchsia-900/30 bg-black/40 p-1">
+      <svg viewBox={`0 0 ${totalW} ${WH}`} className="w-full block">
+        {/* White keys */}
+        {Array.from({ length: OCTAVES }, (_, o) =>
+          WHITE_PC.map((pc, wi) => (
+            <rect
+              key={`w-${o}-${wi}`}
+              x={((o * 7 + wi) * WW) + 0.5}
+              y={0.5}
+              width={WW - 1}
+              height={WH - 1}
+              rx={2}
+              fill={keyColor(pc, false)}
+              stroke="rgba(139,92,246,0.25)"
+              strokeWidth={0.5}
+            />
+          ))
+        )}
+        {/* Black keys */}
+        {Array.from({ length: OCTAVES }, (_, o) =>
+          BLACK_KEYS.map(({ wi, pc }, bi) => (
+            <rect
+              key={`b-${o}-${bi}`}
+              x={((o * 7 + wi) * WW) + 0.5}
+              y={0.5}
+              width={BW - 1}
+              height={BH - 1}
+              rx={1.5}
+              fill={keyColor(pc, true)}
+              stroke="rgba(139,92,246,0.4)"
+              strokeWidth={0.5}
+            />
+          ))
+        )}
+        {/* Note name labels on highlighted white keys */}
+        {Array.from({ length: OCTAVES }, (_, o) =>
+          WHITE_PC.map((pc, wi) => {
+            if (pc !== rootPc && pc !== resultPc) return null;
+            const x = (o * 7 + wi) * WW + WW / 2;
+            return (
+              <text
+                key={`lbl-${o}-${wi}`}
+                x={x}
+                y={WH - 5}
+                textAnchor="middle"
+                fontSize={6}
+                fill={pc === rootPc && pc === resultPc ? "#f0abfc" : pc === rootPc ? "#d8b4fe" : "#fcd34d"}
+                fontFamily="monospace"
+              >
+                {NOTE_NAMES[pc]}
+              </text>
+            );
+          })
+        )}
+      </svg>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // HARMONIA MODE — Pythagorean tuning & frequency calculator
 // ─────────────────────────────────────────────────────────────────────────────
 function HarmoniaMode() {
   const [baseFreq, setBaseFreq] = useState("440");
   const [intervalIdx, setIntervalIdx] = useState(7); // Perfect 5th default
   const [rootNote, setRootNote] = useState(9); // A
+  const [waveform, setWaveform] = useState<OscillatorType>("sine");
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [playing, setPlaying] = useState<"root" | "result" | "dyad" | null>(null);
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const stopRef = useRef<() => void>(() => {});
+
+  // Lazy-init AudioContext on first user gesture (required on iOS)
+  const getCtx = useCallback(() => {
+    if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+      audioCtxRef.current = new (window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopRef.current();
+      audioCtxRef.current?.close();
+    };
+  }, []);
 
   const base = parseFloat(baseFreq) || 440;
   const interval = PYTHAGOREAN_INTERVALS[intervalIdx];
-
-  // Reconstruct ratio as decimal
   const [num, den] = interval.ratio.split(":").map(Number);
   const ratioDecimal = num / den;
   const resultFreq = (base * ratioDecimal).toFixed(3);
-
-  // MIDI note number → frequency
-  const noteFrequency = (semitones: number) => (440 * Math.pow(2, semitones / 12)).toFixed(2);
-
-  // Monochord string length for interval (inverse of frequency ratio)
   const stringLength = (1 / ratioDecimal).toFixed(4);
+
+  // Core tone synthesiser — sine-wave oscillator with ADSR envelope
+  const synthTone = useCallback(
+    (ctx: AudioContext, freq: number, startTime: number, duration: number, gain: number) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc.type = waveform;
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      // Attack 30ms → sustain → release 600ms
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(gain, startTime + 0.03);
+      gainNode.gain.setValueAtTime(gain, startTime + duration - 0.6);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+      return osc;
+    },
+    [waveform]
+  );
+
+  const stop = () => {
+    stopRef.current();
+    setPlaying(null);
+  };
+
+  const play = useCallback(
+    (mode: "root" | "result" | "dyad", overrideBase?: number, overrideResult?: number) => {
+      stop();
+      const ctx = getCtx();
+      const now = ctx.currentTime;
+      const dur = mode === "dyad" ? 3.5 : 2.2;
+      const g = mode === "dyad" ? 0.26 : 0.32;
+      const f1 = overrideBase  ?? base;
+      const f2 = overrideResult ?? parseFloat(resultFreq);
+
+      const oscs: OscillatorNode[] = [];
+      if (mode === "root" || mode === "dyad") {
+        oscs.push(synthTone(ctx, f1, now, dur, g));
+      }
+      if (mode === "result" || mode === "dyad") {
+        oscs.push(synthTone(ctx, f2, now, dur, g));
+      }
+
+      setPlaying(mode);
+      const tid = setTimeout(() => setPlaying(null), dur * 1000);
+      stopRef.current = () => {
+        clearTimeout(tid);
+        const t = ctx.currentTime + 0.05;
+        oscs.forEach((o) => { try { o.stop(t); } catch { /* already stopped */ } });
+        setPlaying(null);
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [base, resultFreq, synthTone, getCtx]
+  );
+
+  const handleIntervalSelect = (i: number) => {
+    setIntervalIdx(i);
+    if (autoPlay) {
+      // Compute frequencies directly from the new index — never read from state
+      // which may not have re-rendered yet, causing the race that made the same
+      // interval sound different on successive taps.
+      const inv = PYTHAGOREAN_INTERVALS[i];
+      const [n, d] = inv.ratio.split(":").map(Number);
+      const newResult = base * (n / d);
+      play("dyad", base, newResult);
+    }
+  };
+
+  const WAVEFORMS: { type: OscillatorType; label: string; desc: string }[] = [
+    { type: "sine",     label: "Sine",     desc: "Pure / Pythagorean" },
+    { type: "triangle", label: "Triangle", desc: "Warm / Organ"       },
+    { type: "sawtooth", label: "Saw",      desc: "Bright / Strings"   },
+  ];
 
   return (
     <div className="flex flex-col gap-3">
@@ -461,7 +652,6 @@ function HarmoniaMode() {
               key={n}
               onClick={() => {
                 setRootNote(i);
-                // A4=440, each semitone from A = i - 9
                 setBaseFreq((440 * Math.pow(2, (i - 9) / 12)).toFixed(2));
               }}
               className={`px-1.5 py-0.5 rounded-md border text-[10px] font-mono transition-all active:scale-95 ${
@@ -476,7 +666,7 @@ function HarmoniaMode() {
         </div>
       </div>
 
-      {/* Base frequency override */}
+      {/* Base Hz override */}
       <div className="flex items-center gap-2">
         <label className="text-[9px] text-cyan-700 font-mono uppercase tracking-widest shrink-0">Base (Hz)</label>
         <input
@@ -487,6 +677,33 @@ function HarmoniaMode() {
         />
       </div>
 
+      {/* Waveform + auto-play controls */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {WAVEFORMS.map(({ type, label }) => (
+          <button
+            key={type}
+            onClick={() => setWaveform(type)}
+            className={`px-2 py-1 rounded-lg border text-[10px] font-mono transition-all active:scale-95 ${
+              waveform === type
+                ? "border-fuchsia-500/50 bg-fuchsia-800/20 text-fuchsia-300"
+                : "border-fuchsia-900/20 text-fuchsia-700 hover:border-fuchsia-600/40"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          onClick={() => setAutoPlay((a) => !a)}
+          className={`ml-auto px-2 py-1 rounded-lg border text-[10px] font-mono transition-all active:scale-95 ${
+            autoPlay
+              ? "border-amber-500/50 bg-amber-900/20 text-amber-300"
+              : "border-amber-900/20 text-amber-700/60 hover:border-amber-700/40"
+          }`}
+        >
+          {autoPlay ? "Auto ✓" : "Auto"}
+        </button>
+      </div>
+
       {/* Interval selector */}
       <div>
         <div className="text-[9px] text-fuchsia-700 font-mono uppercase tracking-widest mb-1.5">Pythagorean Interval</div>
@@ -494,7 +711,7 @@ function HarmoniaMode() {
           {PYTHAGOREAN_INTERVALS.map((inv, i) => (
             <button
               key={inv.name}
-              onClick={() => setIntervalIdx(i)}
+              onClick={() => handleIntervalSelect(i)}
               className={`flex items-center justify-between px-3 py-1.5 rounded-lg border text-[10px] font-mono transition-all active:scale-95 text-left ${
                 intervalIdx === i
                   ? "border-amber-500/50 bg-amber-900/20 text-amber-200"
@@ -508,7 +725,10 @@ function HarmoniaMode() {
         </div>
       </div>
 
-      {/* Result */}
+      {/* Mini keyboard */}
+      <MiniKeyboard rootPc={freqToPitchClass(base)} resultPc={freqToPitchClass(parseFloat(resultFreq))} />
+
+      {/* Result readout */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-black/40 rounded-xl border border-fuchsia-900/30 p-2">
           <div className="text-[8px] text-fuchsia-700 uppercase tracking-widest mb-0.5">Result (Hz)</div>
@@ -524,8 +744,30 @@ function HarmoniaMode() {
         </div>
       </div>
 
+      {/* Play buttons */}
+      <div className="grid grid-cols-3 gap-2">
+        {([
+          { mode: "root",   label: "▶ Root",     color: "fuchsia" },
+          { mode: "result", label: "▶ Interval",  color: "amber"   },
+          { mode: "dyad",   label: "▶ Together",  color: "cyan"    },
+        ] as { mode: "root" | "result" | "dyad"; label: string; color: string }[]).map(({ mode, label, color }) => (
+          <motion.button
+            key={mode}
+            whileTap={{ scale: 0.93 }}
+            onClick={() => playing === mode ? stop() : play(mode)}
+            className={`py-2 rounded-xl border text-[10px] font-display uppercase tracking-widest transition-all active:scale-95
+              ${playing === mode
+                ? `border-${color}-400/60 bg-${color}-700/30 text-${color}-200 shadow-[0_0_12px_rgba(185,21,204,0.3)]`
+                : `border-${color}-900/30 text-${color}-700 hover:border-${color}-700/40 hover:bg-${color}-950/20`
+              }`}
+          >
+            {playing === mode ? "■ Stop" : label}
+          </motion.button>
+        ))}
+      </div>
+
       {/* Footer lore */}
-      <div className="text-[9px] text-fuchsia-900/60 font-mono text-center mt-1">
+      <div className="text-[9px] text-fuchsia-900/60 font-mono text-center">
         Pythagoras: the cosmos is number made audible
       </div>
     </div>
