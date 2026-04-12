@@ -584,7 +584,6 @@ export function useIphtyMessageNotifications(): void {
             title: 'New Iphty Transmission',
             body: `${senderName} sent you an encrypted message.`,
             icon: '/icons/iphty-link-duck-notification-icon-512.svg',
-            image: '/icons/iphty-link-duck-notification-icon-512.svg',
             badge: '/icons/iphty-link-duck-notification-icon-512.svg',
             tag: `iphty-msg-${change.doc.id}`,
             url: '/iphty-link',
@@ -603,7 +602,6 @@ export function useIphtyMessageNotifications(): void {
               .then((reg) => reg.showNotification(notifPayload.title, {
                 body: notifPayload.body,
                 icon: notifPayload.icon,
-                image: notifPayload.image,
                 badge: notifPayload.badge,
                 tag: notifPayload.tag,
                 renotify: true,

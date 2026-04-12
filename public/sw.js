@@ -14,12 +14,11 @@ self.addEventListener('activate', (event) => {
 // We show it from SW context so Android uses the app icon, not the browser icon.
 self.addEventListener('message', (event) => {
   if (!event.data || event.data.type !== 'SHOW_NOTIFICATION') return;
-  const { title, body, icon, image, badge, tag, url } = event.data;
+  const { title, body, icon, badge, tag, url } = event.data;
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
       icon,
-      image,
       badge,
       tag,
       renotify: true,

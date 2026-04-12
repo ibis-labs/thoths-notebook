@@ -91,8 +91,8 @@ export default function LibraryPage() {
 
       {/* SEBAYT CONSOLE OVERLAY */}
       {showSebayt && (
-        <div className="fixed inset-0 z-[110] bg-black/95 flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
-          <div className="w-full max-w-6xl h-full">
+        <div className="fixed inset-0 z-[110] bg-black/95 flex flex-col items-center justify-center p-0 md:p-6 animate-in fade-in duration-500">
+          <div className="w-full md:max-w-6xl h-full">
             <SebaytConsole onClose={() => setShowSebayt(false)} />
           </div>
         </div>
