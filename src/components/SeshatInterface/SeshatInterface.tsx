@@ -3,6 +3,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Moon, Sunrise, Stars, ChevronLeft, ChevronRight, Music2, BookOpen, TrendingUp } from "lucide-react";
+import { EuclidElementsVoid } from "./euclid/EuclidElementsVoid";
+import { useAuth } from "@/components/auth-provider";
+
+const EUCLID_PROGRESS_KEY = "euclid_progress_v1";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EUCLID DATA — Books I–XIII with representative propositions + problems
@@ -808,10 +812,42 @@ export function SeshatInterface() {
   const [isRippleLocked, setIsRippleLocked] = useState(false);
   const rippleLockRef = useRef(false);
 
+  const { user } = useAuth();
+
+  // ── Euclid progress (localStorage, keyed per user uid) ──────────────────
+  const progressKey = user ? `${EUCLID_PROGRESS_KEY}_${user.uid}` : EUCLID_PROGRESS_KEY;
+  const loadProgress = () => {
+    try {
+      const raw = localStorage.getItem(progressKey);
+      return raw ? JSON.parse(raw) as { idx: number; name: string } : null;
+    } catch { return null; }
+  };
+  const [euclidProgress, setEuclidProgress] = useState<{ idx: number; name: string } | null>(
+    () => (typeof window !== "undefined" ? loadProgress() : null)
+  );
+
+  const handleEuclidProgress = useCallback((idx: number, name: string) => {
+    const entry = { idx, name };
+    setEuclidProgress(entry);
+    try { localStorage.setItem(progressKey, JSON.stringify(entry)); } catch {}
+  }, [progressKey]);
+
   const [mode, setMode] = useState<CalcMode>('SIMPLE');
   const [calcInput, setCalcInput] = useState("0");
   const [calcMemory, setCalcMemory] = useState("");
   const [esoterica, setEsoterica] = useState<EsotericaMode>(null);
+  const [euclidVoidOpen, setEuclidVoidOpen] = useState(false);
+
+  // Auto-open Void when Euclid is selected, close when leaving
+  const prevEsoterica = useRef<EsotericaMode>(null);
+  useEffect(() => {
+    if (esoterica === 'EUCLID' && prevEsoterica.current !== 'EUCLID') {
+      setEuclidVoidOpen(true);
+    } else if (esoterica !== 'EUCLID' && prevEsoterica.current === 'EUCLID') {
+      setEuclidVoidOpen(false);
+    }
+    prevEsoterica.current = esoterica;
+  }, [esoterica]);
 
   // Load the SVG
   useEffect(() => {
@@ -983,7 +1019,7 @@ export function SeshatInterface() {
             {/* Esoterica button */}
             <button
               onClick={() => setEsoterica(esoterica ? null : 'EUCLID')}
-              className={`px-2.5 py-1.5 rounded-xl border text-[10px] font-display font-bold uppercase tracking-widest transition-colors active:scale-95 ${
+              className={`px-2.5 py-1.5 rounded-xl border text-[20px] font-display font-bold uppercase tracking-widest transition-colors active:scale-95 ${
                 esoterica
                   ? "border-amber-500/60 bg-amber-800/30 text-amber-300"
                   : "border-amber-700/30 bg-amber-950/20 text-amber-600 hover:bg-amber-900/20"
@@ -1043,7 +1079,22 @@ export function SeshatInterface() {
                 </div>
 
                 <div className="border-t border-fuchsia-500/10 pt-3">
-                  {esoterica === 'EUCLID'   && <EuclidMode />}
+                  {esoterica === 'EUCLID' && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-amber-700/60 font-mono text-[10px] text-center uppercase tracking-[0.2em] py-1">
+                        {euclidProgress
+                          ? `Last mastered: ${euclidProgress.name}`
+                          : "The Void awaits your first line."
+                        }
+                      </p>
+                      <button
+                        onClick={() => setEuclidVoidOpen(true)}
+                        className="w-full py-2.5 rounded-xl border border-amber-600/30 bg-amber-950/10 text-amber-500/70 font-display text-[10px] uppercase tracking-[0.2em] hover:bg-amber-900/20 active:scale-95 transition-all"
+                      >
+                        ⟐ Return to the Void
+                      </button>
+                    </div>
+                  )}
                   {esoterica === 'CALCULUS' && <CalculusMode />}
                   {esoterica === 'HARMONIA' && <HarmoniaMode />}
                 </div>
@@ -1139,6 +1190,19 @@ export function SeshatInterface() {
             animation: pulse-purple 6s infinite ease-in-out;
         }
       `}} />
+
+      {/* EUCLID ELEMENTS VOID OVERLAY */}
+      <AnimatePresence>
+        {euclidVoidOpen && (
+          <EuclidElementsVoid
+            onClose={() => { setEuclidVoidOpen(false); setEsoterica(null); }}
+            scribesName={user?.displayName ?? undefined}
+            lastPostulateName={euclidProgress?.name}
+            resumeIdx={euclidProgress?.idx ?? 0}
+            onProgress={handleEuclidProgress}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

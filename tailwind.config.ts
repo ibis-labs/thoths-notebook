@@ -12,6 +12,7 @@ export default {
       fontFamily: {
         body: ['var(--font-quantico)', 'sans-serif'],
         headline: ['var(--font-orbitron)', 'sans-serif'],
+        'greek-display': ['var(--font-jura)', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {

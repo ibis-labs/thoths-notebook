@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Quantico, Orbitron } from 'next/font/google';
+import { Quantico, Orbitron, Jura } from 'next/font/google';
 import './globals.css';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
@@ -20,6 +20,13 @@ const orbitron = Orbitron({
   weight: ['400', '700'],
   subsets: ['latin'],
   variable: '--font-orbitron',
+});
+
+// Jura — geometric / futuristic, full Greek subset (for DecryptionHeader Greek phase)
+const jura = Jura({
+  weight: ['400', '700'],
+  subsets: ['greek', 'latin'],
+  variable: '--font-jura',
 });
 
 // 2. Metadata & Viewport remain separate constants
@@ -49,7 +56,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${quantico.variable} ${orbitron.variable} font-body antialiased bg-black text-foreground`}>
+      <body className={`${quantico.variable} ${orbitron.variable} ${jura.variable} font-body antialiased bg-black text-foreground`}>
         <AuthProvider>
           <GlobalBanners />
           <ArchiveUnlockGate />
