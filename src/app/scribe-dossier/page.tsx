@@ -19,6 +19,7 @@ import { IstanbulDial } from "@/components/IstanbulDial";
 import { ObeliskGuardian } from "@/components/IstanbulProtocol/ObeliskGuardian";
 import IstanbulRitual from "@/components/IstanbulProtocol/IstanbulRitual";import { RecoveryPhrasePanel } from '@/components/recovery-phrase-panel';
 import { NehehCircuit } from "@/components/neheh-circuit";
+import { JermzLovePulse } from "@/components/jermz-love-pulse";
 export default function ScribeDossierPage() {
   const { user, needsFinalSeal } = useAuth();
   const { installChip, isInstalled, canInstall } = usePWA();
@@ -55,6 +56,8 @@ export default function ScribeDossierPage() {
   };
 
   const isDjehuty = user?.uid === "YOUR_SORCERER_UID";
+  const isJermz = user?.displayName === "Jermz";
+  const [showLovePulse, setShowLovePulse] = useState(false);
 
 const [ritualState, setRitualState] = useState<'dossier' | 'ritual' | 'recovery'>('dossier');
   return (
@@ -79,12 +82,32 @@ const [ritualState, setRitualState] = useState<'dossier' | 'ritual' | 'recovery'
         
         {/* 🏛️ HEADER */}
         <div className="pt-10 flex flex-col items-center gap-6">
-          <div className="w-24 h-24 rounded-full bg-black border-2 border-cyan-500/50 flex items-center justify-center relative overflow-hidden">
-            <Fingerprint className="w-12 h-12 text-cyan-900 absolute opacity-40" />
-            <div className="w-full h-full bg-gradient-to-b from-cyan-900/20 to-black flex items-center justify-center">
-              <span className="text-3xl font-headline text-pink-500">{user?.displayName?.[0] || "S"}</span>
+          {isJermz ? (
+            <>
+              <button
+                onClick={() => setShowLovePulse(true)}
+                className="focus:outline-none active:scale-95 transition-transform"
+                aria-label="Secret message"
+              >
+                <Image
+                  src="/images/pharoah-jermz-avatar.svg"
+                  alt="Pharaoh Jermz"
+                  width={220}
+                  height={290}
+                  priority
+                  className="drop-shadow-[0_0_28px_rgba(34,211,238,0.5)] rounded-2xl"
+                />
+              </button>
+              {showLovePulse && <JermzLovePulse onClose={() => setShowLovePulse(false)} />}
+            </>
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-black border-2 border-cyan-500/50 flex items-center justify-center relative overflow-hidden">
+              <Fingerprint className="w-12 h-12 text-cyan-900 absolute opacity-40" />
+              <div className="w-full h-full bg-gradient-to-b from-cyan-900/20 to-black flex items-center justify-center">
+                <span className="text-3xl font-headline text-pink-500">{user?.displayName?.[0] || "S"}</span>
+              </div>
             </div>
-          </div>
+          )}
           <div className="text-center">
             {isEditingName ? (
               <form onSubmit={saveDisplayName} className="flex flex-col items-center gap-3">
