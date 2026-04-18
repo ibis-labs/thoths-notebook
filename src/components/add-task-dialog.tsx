@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { CalendarIcon, Plus, X } from "lucide-react";
 import { format } from "date-fns";
+import { ToastAction } from "@/components/ui/toast";
 
 // --- NEW IMPORTS FOR THE FIRST BREATH ---
 import { useAuth } from "@/components/auth-provider";
@@ -88,10 +90,18 @@ type AddTaskDialogProps = {
   onTaskAdd: (task: Omit<Task, 'id' | 'completed'>) => void;
 };
 
+const WORKOUT_KEYWORDS = ['workout', 'gym', 'training', 'strength', 'lift', 'exercise', 'weights', 'fitness'];
+
+function containsWorkoutKeywords(title: string): boolean {
+  const lower = title.toLowerCase();
+  return WORKOUT_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
 export function AddTaskDialog({ onTaskAdd }: AddTaskDialogProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
   const { collections, addCollection } = useOstracaCollections();
   const [subtaskText, setSubtaskText] = useState("");
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
@@ -146,7 +156,24 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
       // Call the unified handler for ALL task types
       onTaskAdd(newTaskData);
 
-      toast({ title: "Task Scribed", description: `"${values.title}" added.` });
+      // --- KHET MA'AT SYNC: Workout keyword detection ---
+      if (containsWorkoutKeywords(values.title)) {
+        toast({
+          title: "Workout Task Detected",
+          description: "Would you like to forge a workout program for this task?",
+          action: (
+            <ToastAction
+              altText="Create Program"
+              onClick={() => router.push('/khet/program')}
+              className="text-xs font-headline uppercase tracking-widest text-amber-400 hover:text-amber-300 border-amber-700"
+            >
+              Create Program
+            </ToastAction>
+          ),
+        });
+      } else {
+        toast({ title: "Task Scribed", description: `"${values.title}" added.` });
+      }
 
       form.reset();
       setSubtasks([]);

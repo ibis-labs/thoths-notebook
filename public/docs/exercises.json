@@ -1,0 +1,530 @@
+[
+  {
+    "id": "barbell-back-squat",
+    "name": "Barbell Back Squat",
+    "category": "Legs",
+    "primaryMuscles": ["Quadriceps", "Glutes", "Hamstrings"],
+    "equipment": ["Barbell", "Rack"],
+    "equivalents": ["hack-squat", "smith-machine-squat", "leg-press", "goblet-squat", "bulgarian-split-squat"]
+  },
+  {
+    "id": "hack-squat",
+    "name": "Hack Squat",
+    "category": "Legs",
+    "primaryMuscles": ["Quadriceps", "Glutes"],
+    "equipment": ["Machine"],
+    "equivalents": ["barbell-back-squat", "smith-machine-squat", "leg-press"]
+  },
+  {
+    "id": "smith-machine-squat",
+    "name": "Smith Machine Squat",
+    "category": "Legs",
+    "primaryMuscles": ["Quadriceps", "Glutes", "Hamstrings"],
+    "equipment": ["Smith Machine"],
+    "equivalents": ["barbell-back-squat", "hack-squat", "leg-press"]
+  },
+  {
+    "id": "leg-press",
+    "name": "Leg Press",
+    "category": "Legs",
+    "primaryMuscles": ["Quadriceps", "Glutes"],
+    "equipment": ["Machine"],
+    "equivalents": ["barbell-back-squat", "hack-squat", "goblet-squat"]
+  },
+  {
+    "id": "goblet-squat",
+    "name": "Goblet Squat",
+    "category": "Legs",
+    "primaryMuscles": ["Quadriceps", "Glutes"],
+    "equipment": ["Dumbbell", "Kettlebell"],
+    "equivalents": ["barbell-back-squat", "leg-press", "bulgarian-split-squat"]
+  },
+  {
+    "id": "bulgarian-split-squat",
+    "name": "Bulgarian Split Squat",
+    "category": "Legs",
+    "primaryMuscles": ["Quadriceps", "Glutes", "Hamstrings"],
+    "equipment": ["Dumbbell", "Barbell"],
+    "equivalents": ["barbell-back-squat", "goblet-squat", "walking-lunge"]
+  },
+  {
+    "id": "walking-lunge",
+    "name": "Walking Lunge",
+    "category": "Legs",
+    "primaryMuscles": ["Quadriceps", "Glutes", "Hamstrings"],
+    "equipment": ["Dumbbell", "Bodyweight"],
+    "equivalents": ["bulgarian-split-squat", "goblet-squat", "leg-press"]
+  },
+  {
+    "id": "romanian-deadlift",
+    "name": "Romanian Deadlift",
+    "category": "Legs",
+    "primaryMuscles": ["Hamstrings", "Glutes", "Lower Back"],
+    "equipment": ["Barbell", "Dumbbell"],
+    "equivalents": ["leg-curl", "stiff-leg-deadlift", "good-morning"]
+  },
+  {
+    "id": "stiff-leg-deadlift",
+    "name": "Stiff-Leg Deadlift",
+    "category": "Legs",
+    "primaryMuscles": ["Hamstrings", "Glutes", "Lower Back"],
+    "equipment": ["Barbell", "Dumbbell"],
+    "equivalents": ["romanian-deadlift", "leg-curl"]
+  },
+  {
+    "id": "leg-curl",
+    "name": "Lying Leg Curl",
+    "category": "Legs",
+    "primaryMuscles": ["Hamstrings"],
+    "equipment": ["Machine"],
+    "equivalents": ["romanian-deadlift", "seated-leg-curl", "nordic-curl"]
+  },
+  {
+    "id": "seated-leg-curl",
+    "name": "Seated Leg Curl",
+    "category": "Legs",
+    "primaryMuscles": ["Hamstrings"],
+    "equipment": ["Machine"],
+    "equivalents": ["leg-curl", "romanian-deadlift"]
+  },
+  {
+    "id": "leg-extension",
+    "name": "Leg Extension",
+    "category": "Legs",
+    "primaryMuscles": ["Quadriceps"],
+    "equipment": ["Machine"],
+    "equivalents": ["barbell-back-squat", "hack-squat", "leg-press"]
+  },
+  {
+    "id": "calf-raise",
+    "name": "Standing Calf Raise",
+    "category": "Legs",
+    "primaryMuscles": ["Calves"],
+    "equipment": ["Machine", "Dumbbell", "Barbell"],
+    "equivalents": ["seated-calf-raise", "donkey-calf-raise"]
+  },
+  {
+    "id": "seated-calf-raise",
+    "name": "Seated Calf Raise",
+    "category": "Legs",
+    "primaryMuscles": ["Calves", "Soleus"],
+    "equipment": ["Machine"],
+    "equivalents": ["calf-raise"]
+  },
+  {
+    "id": "barbell-bench-press",
+    "name": "Barbell Bench Press",
+    "category": "Chest",
+    "primaryMuscles": ["Chest", "Triceps", "Anterior Deltoid"],
+    "equipment": ["Barbell", "Bench"],
+    "equivalents": ["dumbbell-bench-press", "smith-machine-bench", "push-up", "dip"]
+  },
+  {
+    "id": "dumbbell-bench-press",
+    "name": "Dumbbell Bench Press",
+    "category": "Chest",
+    "primaryMuscles": ["Chest", "Triceps", "Anterior Deltoid"],
+    "equipment": ["Dumbbell", "Bench"],
+    "equivalents": ["barbell-bench-press", "smith-machine-bench", "push-up"]
+  },
+  {
+    "id": "smith-machine-bench",
+    "name": "Smith Machine Bench Press",
+    "category": "Chest",
+    "primaryMuscles": ["Chest", "Triceps"],
+    "equipment": ["Smith Machine", "Bench"],
+    "equivalents": ["barbell-bench-press", "dumbbell-bench-press"]
+  },
+  {
+    "id": "incline-barbell-press",
+    "name": "Incline Barbell Press",
+    "category": "Chest",
+    "primaryMuscles": ["Upper Chest", "Triceps", "Anterior Deltoid"],
+    "equipment": ["Barbell", "Incline Bench"],
+    "equivalents": ["incline-dumbbell-press", "incline-cable-press", "low-to-high-cable-fly"]
+  },
+  {
+    "id": "incline-dumbbell-press",
+    "name": "Incline Dumbbell Press",
+    "category": "Chest",
+    "primaryMuscles": ["Upper Chest", "Triceps", "Anterior Deltoid"],
+    "equipment": ["Dumbbell", "Incline Bench"],
+    "equivalents": ["incline-barbell-press", "incline-cable-press"]
+  },
+  {
+    "id": "cable-fly",
+    "name": "Cable Fly",
+    "category": "Chest",
+    "primaryMuscles": ["Chest"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["dumbbell-fly", "pec-deck", "low-to-high-cable-fly"]
+  },
+  {
+    "id": "dumbbell-fly",
+    "name": "Dumbbell Fly",
+    "category": "Chest",
+    "primaryMuscles": ["Chest"],
+    "equipment": ["Dumbbell", "Bench"],
+    "equivalents": ["cable-fly", "pec-deck"]
+  },
+  {
+    "id": "pec-deck",
+    "name": "Pec Deck",
+    "category": "Chest",
+    "primaryMuscles": ["Chest"],
+    "equipment": ["Machine"],
+    "equivalents": ["cable-fly", "dumbbell-fly"]
+  },
+  {
+    "id": "push-up",
+    "name": "Push-Up",
+    "category": "Chest",
+    "primaryMuscles": ["Chest", "Triceps", "Anterior Deltoid"],
+    "equipment": ["Bodyweight"],
+    "equivalents": ["barbell-bench-press", "dumbbell-bench-press", "dip"]
+  },
+  {
+    "id": "dip",
+    "name": "Dip (Chest)",
+    "category": "Chest",
+    "primaryMuscles": ["Chest", "Triceps"],
+    "equipment": ["Dip Bar", "Bodyweight"],
+    "equivalents": ["push-up", "cable-fly", "dumbbell-bench-press"]
+  },
+  {
+    "id": "low-to-high-cable-fly",
+    "name": "Low-to-High Cable Fly",
+    "category": "Chest",
+    "primaryMuscles": ["Upper Chest"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["incline-dumbbell-press", "cable-fly", "pec-deck"]
+  },
+  {
+    "id": "barbell-row",
+    "name": "Barbell Row",
+    "category": "Back",
+    "primaryMuscles": ["Lats", "Rhomboids", "Rear Deltoid", "Biceps"],
+    "equipment": ["Barbell"],
+    "equivalents": ["dumbbell-row", "cable-row", "t-bar-row", "chest-supported-row"]
+  },
+  {
+    "id": "dumbbell-row",
+    "name": "Dumbbell Row",
+    "category": "Back",
+    "primaryMuscles": ["Lats", "Rhomboids", "Rear Deltoid"],
+    "equipment": ["Dumbbell", "Bench"],
+    "equivalents": ["barbell-row", "cable-row", "chest-supported-row"]
+  },
+  {
+    "id": "cable-row",
+    "name": "Seated Cable Row",
+    "category": "Back",
+    "primaryMuscles": ["Lats", "Rhomboids", "Biceps"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["barbell-row", "dumbbell-row", "t-bar-row"]
+  },
+  {
+    "id": "t-bar-row",
+    "name": "T-Bar Row",
+    "category": "Back",
+    "primaryMuscles": ["Lats", "Rhomboids", "Rear Deltoid"],
+    "equipment": ["T-Bar Machine", "Barbell"],
+    "equivalents": ["barbell-row", "cable-row", "chest-supported-row"]
+  },
+  {
+    "id": "chest-supported-row",
+    "name": "Chest-Supported Row",
+    "category": "Back",
+    "primaryMuscles": ["Rhomboids", "Rear Deltoid", "Lats"],
+    "equipment": ["Machine", "Dumbbell"],
+    "equivalents": ["barbell-row", "dumbbell-row", "cable-row"]
+  },
+  {
+    "id": "pull-up",
+    "name": "Pull-Up",
+    "category": "Back",
+    "primaryMuscles": ["Lats", "Biceps"],
+    "equipment": ["Pull-Up Bar", "Bodyweight"],
+    "equivalents": ["lat-pulldown", "assisted-pull-up", "close-grip-pulldown"]
+  },
+  {
+    "id": "lat-pulldown",
+    "name": "Lat Pulldown",
+    "category": "Back",
+    "primaryMuscles": ["Lats", "Biceps"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["pull-up", "close-grip-pulldown", "straight-arm-pulldown"]
+  },
+  {
+    "id": "close-grip-pulldown",
+    "name": "Close-Grip Pulldown",
+    "category": "Back",
+    "primaryMuscles": ["Lats", "Biceps"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["lat-pulldown", "pull-up"]
+  },
+  {
+    "id": "straight-arm-pulldown",
+    "name": "Straight-Arm Pulldown",
+    "category": "Back",
+    "primaryMuscles": ["Lats"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["lat-pulldown", "pull-up"]
+  },
+  {
+    "id": "face-pull",
+    "name": "Face Pull",
+    "category": "Back",
+    "primaryMuscles": ["Rear Deltoid", "Rotator Cuff"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["rear-delt-fly", "band-pull-apart"]
+  },
+  {
+    "id": "rear-delt-fly",
+    "name": "Rear Delt Fly",
+    "category": "Back",
+    "primaryMuscles": ["Rear Deltoid"],
+    "equipment": ["Dumbbell", "Machine"],
+    "equivalents": ["face-pull", "band-pull-apart", "cable-reverse-fly"]
+  },
+  {
+    "id": "barbell-ohp",
+    "name": "Barbell Overhead Press",
+    "category": "Shoulders",
+    "primaryMuscles": ["Anterior Deltoid", "Lateral Deltoid", "Triceps"],
+    "equipment": ["Barbell"],
+    "equivalents": ["dumbbell-ohp", "arnold-press", "machine-ohp", "push-press"]
+  },
+  {
+    "id": "dumbbell-ohp",
+    "name": "Dumbbell Overhead Press",
+    "category": "Shoulders",
+    "primaryMuscles": ["Anterior Deltoid", "Lateral Deltoid", "Triceps"],
+    "equipment": ["Dumbbell"],
+    "equivalents": ["barbell-ohp", "arnold-press", "machine-ohp"]
+  },
+  {
+    "id": "arnold-press",
+    "name": "Arnold Press",
+    "category": "Shoulders",
+    "primaryMuscles": ["Anterior Deltoid", "Lateral Deltoid"],
+    "equipment": ["Dumbbell"],
+    "equivalents": ["barbell-ohp", "dumbbell-ohp"]
+  },
+  {
+    "id": "machine-ohp",
+    "name": "Machine Overhead Press",
+    "category": "Shoulders",
+    "primaryMuscles": ["Anterior Deltoid", "Triceps"],
+    "equipment": ["Machine"],
+    "equivalents": ["barbell-ohp", "dumbbell-ohp"]
+  },
+  {
+    "id": "lateral-raise",
+    "name": "Lateral Raise",
+    "category": "Shoulders",
+    "primaryMuscles": ["Lateral Deltoid"],
+    "equipment": ["Dumbbell", "Cable Machine"],
+    "equivalents": ["cable-lateral-raise", "machine-lateral-raise"]
+  },
+  {
+    "id": "cable-lateral-raise",
+    "name": "Cable Lateral Raise",
+    "category": "Shoulders",
+    "primaryMuscles": ["Lateral Deltoid"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["lateral-raise", "machine-lateral-raise"]
+  },
+  {
+    "id": "front-raise",
+    "name": "Front Raise",
+    "category": "Shoulders",
+    "primaryMuscles": ["Anterior Deltoid"],
+    "equipment": ["Dumbbell", "Cable Machine"],
+    "equivalents": ["barbell-ohp", "cable-lateral-raise"]
+  },
+  {
+    "id": "barbell-curl",
+    "name": "Barbell Curl",
+    "category": "Arms",
+    "primaryMuscles": ["Biceps"],
+    "equipment": ["Barbell", "EZ-Bar"],
+    "equivalents": ["dumbbell-curl", "hammer-curl", "preacher-curl", "cable-curl"]
+  },
+  {
+    "id": "dumbbell-curl",
+    "name": "Dumbbell Curl",
+    "category": "Arms",
+    "primaryMuscles": ["Biceps"],
+    "equipment": ["Dumbbell"],
+    "equivalents": ["barbell-curl", "hammer-curl", "preacher-curl"]
+  },
+  {
+    "id": "hammer-curl",
+    "name": "Hammer Curl",
+    "category": "Arms",
+    "primaryMuscles": ["Biceps", "Brachialis"],
+    "equipment": ["Dumbbell"],
+    "equivalents": ["barbell-curl", "cable-curl", "dumbbell-curl"]
+  },
+  {
+    "id": "preacher-curl",
+    "name": "Preacher Curl",
+    "category": "Arms",
+    "primaryMuscles": ["Biceps"],
+    "equipment": ["EZ-Bar", "Dumbbell", "Machine"],
+    "equivalents": ["barbell-curl", "cable-curl"]
+  },
+  {
+    "id": "cable-curl",
+    "name": "Cable Curl",
+    "category": "Arms",
+    "primaryMuscles": ["Biceps"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["barbell-curl", "dumbbell-curl", "preacher-curl"]
+  },
+  {
+    "id": "tricep-pushdown",
+    "name": "Tricep Pushdown",
+    "category": "Arms",
+    "primaryMuscles": ["Triceps"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["skull-crusher", "overhead-tricep-extension", "close-grip-bench"]
+  },
+  {
+    "id": "skull-crusher",
+    "name": "Skull Crusher",
+    "category": "Arms",
+    "primaryMuscles": ["Triceps"],
+    "equipment": ["Barbell", "EZ-Bar", "Dumbbell"],
+    "equivalents": ["tricep-pushdown", "overhead-tricep-extension", "close-grip-bench"]
+  },
+  {
+    "id": "overhead-tricep-extension",
+    "name": "Overhead Tricep Extension",
+    "category": "Arms",
+    "primaryMuscles": ["Triceps (Long Head)"],
+    "equipment": ["Dumbbell", "Cable Machine", "EZ-Bar"],
+    "equivalents": ["skull-crusher", "tricep-pushdown"]
+  },
+  {
+    "id": "close-grip-bench",
+    "name": "Close-Grip Bench Press",
+    "category": "Arms",
+    "primaryMuscles": ["Triceps", "Chest"],
+    "equipment": ["Barbell"],
+    "equivalents": ["tricep-pushdown", "skull-crusher", "dip"]
+  },
+  {
+    "id": "plank",
+    "name": "Plank",
+    "category": "Core",
+    "primaryMuscles": ["Abs", "Obliques"],
+    "equipment": ["Bodyweight"],
+    "equivalents": ["ab-wheel-rollout", "hollow-body-hold"]
+  },
+  {
+    "id": "ab-wheel-rollout",
+    "name": "Ab Wheel Rollout",
+    "category": "Core",
+    "primaryMuscles": ["Abs", "Lats"],
+    "equipment": ["Ab Wheel"],
+    "equivalents": ["plank", "cable-crunch", "hanging-leg-raise"]
+  },
+  {
+    "id": "cable-crunch",
+    "name": "Cable Crunch",
+    "category": "Core",
+    "primaryMuscles": ["Abs"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["crunch", "ab-wheel-rollout", "hanging-leg-raise"]
+  },
+  {
+    "id": "hanging-leg-raise",
+    "name": "Hanging Leg Raise",
+    "category": "Core",
+    "primaryMuscles": ["Abs", "Hip Flexors"],
+    "equipment": ["Pull-Up Bar"],
+    "equivalents": ["cable-crunch", "ab-wheel-rollout"]
+  },
+  {
+    "id": "crunch",
+    "name": "Crunch",
+    "category": "Core",
+    "primaryMuscles": ["Abs"],
+    "equipment": ["Bodyweight"],
+    "equivalents": ["cable-crunch", "plank"]
+  },
+  {
+    "id": "good-morning",
+    "name": "Good Morning",
+    "category": "Legs",
+    "primaryMuscles": ["Hamstrings", "Glutes", "Lower Back"],
+    "equipment": ["Barbell"],
+    "equivalents": ["romanian-deadlift", "leg-curl"]
+  },
+  {
+    "id": "push-press",
+    "name": "Push Press",
+    "category": "Shoulders",
+    "primaryMuscles": ["Anterior Deltoid", "Triceps", "Legs"],
+    "equipment": ["Barbell"],
+    "equivalents": ["barbell-ohp", "dumbbell-ohp"]
+  },
+  {
+    "id": "incline-cable-press",
+    "name": "Incline Cable Press",
+    "category": "Chest",
+    "primaryMuscles": ["Upper Chest"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["incline-barbell-press", "incline-dumbbell-press"]
+  },
+  {
+    "id": "cable-reverse-fly",
+    "name": "Cable Reverse Fly",
+    "category": "Back",
+    "primaryMuscles": ["Rear Deltoid"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["rear-delt-fly", "face-pull"]
+  },
+  {
+    "id": "assisted-pull-up",
+    "name": "Assisted Pull-Up",
+    "category": "Back",
+    "primaryMuscles": ["Lats", "Biceps"],
+    "equipment": ["Assisted Machine"],
+    "equivalents": ["lat-pulldown", "pull-up"]
+  },
+  {
+    "id": "machine-lateral-raise",
+    "name": "Machine Lateral Raise",
+    "category": "Shoulders",
+    "primaryMuscles": ["Lateral Deltoid"],
+    "equipment": ["Machine"],
+    "equivalents": ["lateral-raise", "cable-lateral-raise"]
+  },
+  {
+    "id": "band-pull-apart",
+    "name": "Band Pull-Apart",
+    "category": "Back",
+    "primaryMuscles": ["Rear Deltoid", "Rhomboids"],
+    "equipment": ["Resistance Band"],
+    "equivalents": ["face-pull", "rear-delt-fly"]
+  },
+  {
+    "id": "nordic-curl",
+    "name": "Nordic Curl",
+    "category": "Legs",
+    "primaryMuscles": ["Hamstrings"],
+    "equipment": ["Bodyweight"],
+    "equivalents": ["leg-curl", "romanian-deadlift"]
+  },
+  {
+    "id": "hollow-body-hold",
+    "name": "Hollow Body Hold",
+    "category": "Core",
+    "primaryMuscles": ["Abs", "Hip Flexors"],
+    "equipment": ["Bodyweight"],
+    "equivalents": ["plank", "ab-wheel-rollout"]
+  }
+]

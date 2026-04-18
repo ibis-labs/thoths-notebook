@@ -60,6 +60,9 @@ export type Task = {
 
   // --- NEHEH-CIRCUIT PROMOTION ---
   accentColor?: string;
+
+  // --- KHET-STATION LINK ---
+  khetProgramId?: string | null;  // links this task to a workout program for Ma'at Sync
 };
 
 export const INITIAL_STREAK_DATA: StreakData = {

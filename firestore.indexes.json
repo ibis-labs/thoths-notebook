@@ -31,6 +31,44 @@
         { "fieldPath": "requesteeId", "order": "ASCENDING" },
         { "fieldPath": "status",      "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "khetSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",     "order": "ASCENDING" },
+        { "fieldPath": "programId",  "order": "ASCENDING" },
+        { "fieldPath": "dayIndex",   "order": "ASCENDING" },
+        { "fieldPath": "completed",  "order": "ASCENDING" },
+        { "fieldPath": "date",       "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "khetSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",    "order": "ASCENDING" },
+        { "fieldPath": "completed", "order": "ASCENDING" },
+        { "fieldPath": "date",      "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "khetSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",    "order": "ASCENDING" },
+        { "fieldPath": "programId", "order": "ASCENDING" },
+        { "fieldPath": "completed", "order": "ASCENDING" },
+        { "fieldPath": "date",      "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "khetPrograms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -28,6 +28,7 @@ import {
   Calendar,
   Package,
   Stars,
+  Dumbbell,
 } from "lucide-react";
 import { OstraconIcon } from "@/components/icons/ostracon-icon";
 import { IphtyLinkIcon } from "@/components/icons/IphtyLinkIcon";
@@ -64,6 +65,10 @@ export function AppSidebar({ activeCategory, setActiveCategory }: AppSidebarProp
     if (isMobile) {
       setOpenMobile(false);
     }
+  };
+
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
   };
 
   const temporalFilters = [
@@ -165,47 +170,53 @@ export function AppSidebar({ activeCategory, setActiveCategory }: AppSidebarProp
 
 
         <div className="mt-auto border-t border-cyan-900/30 pt-2 flex flex-col gap-1">
-          <SidebarMenuButton asChild className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/50 group w-full justify-start pl-2 transition-all duration-300">
+          <SidebarMenuButton asChild className="text-zinc-400 hover:text-white hover:bg-zinc-800/60 group w-full justify-start pl-2 transition-all duration-300" onClick={handleNavClick}>
+            <Link href="/">
+              <Home className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+              <span className="font-bold tracking-wide">Main Hall</span>
+            </Link>
+          </SidebarMenuButton>
+          <SidebarMenuButton asChild className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/50 group w-full justify-start pl-2 transition-all duration-300" onClick={handleNavClick}>
             <Link href="/archives">
               <Scroll className="w-4 h-4 mr-2 group-hover:rotate-[-12deg] transition-transform duration-500" />
               <span className="font-bold tracking-wide">The Archives</span>
             </Link>
           </SidebarMenuButton>
-          <SidebarMenuButton asChild className="text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 group w-full justify-start pl-2 transition-all duration-300">
+          <SidebarMenuButton asChild className="text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 group w-full justify-start pl-2 transition-all duration-300" onClick={handleNavClick}>
             <Link href="/library">
               <Landmark className="w-4 h-4 mr-2 group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(244,63,94,0.6)] transition-all duration-500" />
               <span className="font-bold tracking-wide">Grand Library</span>
             </Link>
           </SidebarMenuButton>
 
-          <SidebarMenuButton asChild className="text-fuchsia-400 hover:text-fuchsia-300 hover:bg-fuchsia-950/50 group w-full justify-start pl-2 transition-all duration-300">
+          <SidebarMenuButton asChild className="text-fuchsia-400 hover:text-fuchsia-300 hover:bg-fuchsia-950/50 group w-full justify-start pl-2 transition-all duration-300" onClick={handleNavClick}>
             <Link href="/SeshatInterface">
               <Stars className="w-4 h-4 mr-2 group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(185,21,204,0.6)] transition-all duration-500" />
               <span className="font-bold tracking-wide">Seshat Interface</span>
             </Link>
           </SidebarMenuButton>
-          <SidebarMenuButton asChild className="text-amber-400 hover:text-amber-300 hover:bg-amber-950/50 group w-full justify-start pl-2">
+          <SidebarMenuButton asChild className="text-amber-400 hover:text-amber-300 hover:bg-amber-950/50 group w-full justify-start pl-2" onClick={handleNavClick}>
             <Link href="/rituals">
               <BookOpen className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
               <span className="font-bold tracking-wide">Manage Rituals</span>
             </Link>
           </SidebarMenuButton>
 
-          <SidebarMenuButton asChild className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/50 group w-full justify-start pl-2">
+          <SidebarMenuButton asChild className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/50 group w-full justify-start pl-2" onClick={handleNavClick}>
             <Link href="/evening-chronicle">
               <Moon className="w-4 h-4 mr-2 group-hover:animate-spin-slow transition-all duration-700" />
               <span className="font-bold tracking-wide">Evening Chronicle</span>
             </Link>
           </SidebarMenuButton>
 
-          <SidebarMenuButton asChild className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/50 group w-full justify-start pl-2">
+          <SidebarMenuButton asChild className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/50 group w-full justify-start pl-2" onClick={handleNavClick}>
             <Link href="/ostraca">
               <OstraconIcon className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
               <span className="font-bold tracking-wide">The Ostraca</span>
             </Link>
           </SidebarMenuButton>
 
-          <SidebarMenuButton asChild className="text-violet-400 hover:text-violet-300 hover:bg-violet-950/50 group w-full justify-start pl-2">
+          <SidebarMenuButton asChild className="text-violet-400 hover:text-violet-300 hover:bg-violet-950/50 group w-full justify-start pl-2" onClick={handleNavClick}>
             <Link href="/iphty-link">
               <span className="shrink-0 mr-2 flex items-center">
                 <IphtyLinkIcon
@@ -214,6 +225,13 @@ export function AppSidebar({ activeCategory, setActiveCategory }: AppSidebarProp
                 />
               </span>
               <span className="font-bold tracking-wide">Iphty Link</span>
+            </Link>
+          </SidebarMenuButton>
+
+          <SidebarMenuButton asChild className="text-amber-400 hover:text-amber-300 hover:bg-amber-950/50 group w-full justify-start pl-2 transition-all duration-300" onClick={handleNavClick}>
+            <Link href="/khet/dashboard">
+              <Dumbbell className="w-4 h-4 mr-2 group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-all duration-500" />
+              <span className="font-bold tracking-wide">Khet-Station</span>
             </Link>
           </SidebarMenuButton>
         </div>

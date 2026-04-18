@@ -100,6 +100,30 @@ service cloud.firestore {
           && request.resource.data.senderId == request.auth.uid;
       }
     }
+
+    // 9. KHET PROGRAMS: Owner-only access to workout programs
+    match /khetPrograms/{programId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // 10. KHET SESSIONS: Owner-only access to workout session logs
+    match /khetSessions/{sessionId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // 11. KHET SETTINGS: Owner-only user preferences (body weight etc.)
+    match /khetSettings/{settingsId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // 12. KHET MANUAL PRs: User-entered personal records (owner-only)
+    match /khetManualPRs/{prId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
     
   }
 }
