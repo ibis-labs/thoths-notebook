@@ -36,7 +36,7 @@ export function CardioTracker() {
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-cyan-500" />
           <span className="text-sm font-headline text-cyan-300 uppercase tracking-widest">
-            Cardio
+            Log Cardio
           </span>
           {cardioEnabled && (
             <span className="text-[9px] text-cyan-500 border border-cyan-800 rounded px-1">

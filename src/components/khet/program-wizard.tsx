@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, X, Search, ChevronLeft, ChevronRight, Dumbbell, Link2, GripVertical, Pencil } from 'lucide-react';
+import { Plus, X, Search, ChevronLeft, ChevronRight, Dumbbell, Link2, GripVertical } from 'lucide-react';
+import { CyberStylus } from '@/components/icons/cyber-stylus';
+import { DuamatefJar } from '@/components/icons/duamatef-jar';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useKhet } from '@/hooks/use-khet';
+import { useTasks } from '@/hooks/use-tasks';
 import { useAuth } from '@/components/auth-provider';
 import type {
   WorkoutSplit,
@@ -31,6 +34,8 @@ import type {
   DeloadStrategy,
 } from '@/lib/khet-types';
 import { cn } from '@/lib/utils';
+import { BanishmentPortal } from '@/components/banishment-portal';
+import { SubstitutionEngine } from './substitution-engine';
 
 // ─────────────────────────────────────────────────────────────
 // Day label generators
@@ -94,6 +99,7 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
   const { user } = useAuth();
   const { addProgram, updateProgram } = useKhet();
   const { toast } = useToast();
+  const { rituals } = useTasks();
   const isEditing = !!editProgram;
 
   const [step, setStep] = useState<WizardStep>('foundation');
@@ -105,10 +111,12 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [exSearch, setExSearch] = useState('');
   const [replacingIdx, setReplacingIdx] = useState<number | null>(null);
+  const [swapTarget, setSwapTarget] = useState<{ dayIdx: number; exIdx: number } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [linkedRitualId] = useState<string | null>(null);
+  const [linkedRitualId, setLinkedRitualId] = useState<string | null>(null);
   const [durationWeeks, setDurationWeeks] = useState<number>(8);
   const [deloadStrategy, setDeloadStrategy] = useState<DeloadStrategy>('reduce-volume');
+  const [approvedDays, setApprovedDays] = useState<Set<number>>(new Set());
 
   // Drag-to-reorder state
   const dragIdx = useRef<number | null>(null);
@@ -278,6 +286,8 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
     setReplacingIdx(null);
     setDurationWeeks(8);
     setDeloadStrategy('reduce-volume');
+    setApprovedDays(new Set());
+    setLinkedRitualId(null);
     dragIdx.current = null;
     setDragOver(null);
     onClose();
@@ -291,6 +301,7 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
   );
 
   const activeDay = days[activeDayIdx];
+  const swapEx = swapTarget !== null ? days[swapTarget.dayIdx]?.exercises[swapTarget.exIdx] : null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
@@ -315,7 +326,7 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
               </div>
             ))}
             <span className="ml-2 text-[10px] text-zinc-500 uppercase tracking-widest">
-              {step === 'foundation' ? 'Foundation' : step === 'architect' ? 'Architect' : 'Ma\'at Link'}
+              {step === 'foundation' ? 'Foundation' : step === 'architect' ? 'Review & Edit' : 'Ma\'at Link'}
             </span>          <DialogDescription className="sr-only">
             {step === 'foundation'
               ? 'Configure the program name, split, and frequency.'
@@ -330,24 +341,24 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
           {step === 'foundation' && (
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-headline uppercase tracking-[0.25em] text-zinc-400 block mb-1.5">
+                <label className="text-sm font-headline uppercase tracking-[0.25em] text-zinc-300 block mb-1.5">
                   Program Name
                 </label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. The Forge Protocol"
-                  className="bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-700"
+                  className="bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-700 text-base h-11"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] font-headline uppercase tracking-[0.25em] text-zinc-400 block mb-1.5">
+                  <label className="text-sm font-headline uppercase tracking-[0.25em] text-zinc-300 block mb-1.5">
                     Split
                   </label>
                   <Select value={split} onValueChange={(v) => setSplit(v as WorkoutSplit)}>
-                    <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white">
+                    <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white text-base h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-black border-zinc-800">
@@ -359,11 +370,11 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-headline uppercase tracking-[0.25em] text-zinc-400 block mb-1.5">
+                  <label className="text-sm font-headline uppercase tracking-[0.25em] text-zinc-300 block mb-1.5">
                     Days / Week
                   </label>
                   <Select value={String(freq)} onValueChange={(v) => setFreq(parseInt(v) as WorkoutFrequency)}>
-                    <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white">
+                    <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white text-base h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-black border-zinc-800">
@@ -379,7 +390,7 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
 
               {/* Preview day labels */}
               <div>
-                <label className="text-[10px] font-headline uppercase tracking-[0.25em] text-zinc-500 block mb-1.5">
+                <label className="text-sm font-headline uppercase tracking-[0.25em] text-zinc-400 block mb-1.5">
                   Microcycle Preview
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -394,13 +405,13 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] font-headline uppercase tracking-[0.25em] text-zinc-400 block mb-1.5">
+                  <label className="text-sm font-headline uppercase tracking-[0.25em] text-zinc-300 block mb-1.5">
                     Program Duration
                   </label>
                   <Select value={String(durationWeeks)} onValueChange={(v) => setDurationWeeks(parseInt(v))}>
-                    <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white">
+                    <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white text-base h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-black border-zinc-800">
@@ -414,11 +425,11 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-headline uppercase tracking-[0.25em] text-zinc-400 block mb-1.5">
+                  <label className="text-sm font-headline uppercase tracking-[0.25em] text-zinc-300 block mb-1.5">
                     Deload Strategy
                   </label>
                   <Select value={deloadStrategy} onValueChange={(v) => setDeloadStrategy(v as DeloadStrategy)}>
-                    <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white">
+                    <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white text-base h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-black border-zinc-800">
@@ -432,20 +443,24 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
             </div>
           )}
 
-          {/* ── STEP 2: Architect ── */}
+          {/* ── STEP 2: Review & Edit ── */}
           {step === 'architect' && activeDay && (
             <div className="space-y-3">
+              {/* Instructions */}
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Tap each Day's Workout below to review and edit the exercises. The exercises are ordered for best results, but you may reorder them by dragging them to a new position.
+              </p>
               {/* Day Tabs */}
-              <div className="flex gap-1 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
                 {days.map((d, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveDayIdx(i)}
                     className={cn(
-                      'text-[10px] font-headline uppercase tracking-wider px-2 py-1 rounded border transition-all',
+                      'text-sm font-headline uppercase tracking-wider px-4 py-2 rounded border transition-all',
                       i === activeDayIdx
                         ? 'border-amber-500 text-amber-400 bg-amber-950/20'
-                        : 'border-zinc-700 text-zinc-500 hover:border-zinc-500',
+                        : 'border-zinc-700 text-zinc-400 hover:border-zinc-500',
                     )}
                   >
                     {d.label}
@@ -469,75 +484,123 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
                       setDragOver(null);
                     }}
                     className={cn(
-                      'flex items-center gap-2 p-2 rounded border bg-zinc-950/30 transition-all cursor-grab active:cursor-grabbing',
+                      'p-2.5 rounded border bg-zinc-950/30 transition-all cursor-grab active:cursor-grabbing space-y-2',
                       dragOver === exIdx ? 'border-amber-500/60 bg-amber-950/10' : 'border-zinc-800',
                       replacingIdx === exIdx ? 'border-cyan-500/60 bg-cyan-950/10' : '',
                     )}
                   >
-                    <GripVertical className="w-4 h-4 text-zinc-700 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-zinc-200 truncate">{ex.name}</div>
+                    {/* Row 1: grip handle + full exercise name */}
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+                      <span className="text-base text-zinc-100 font-medium">{ex.name}</span>
                     </div>
-                    <Input
-                      type="number"
-                      value={ex.sets}
-                      min={1}
-                      max={10}
-                      onChange={(e) =>
-                        updateExercise(activeDayIdx, exIdx, { sets: parseInt(e.target.value) || 3 })
-                      }
-                      className="w-14 h-7 text-xs text-center bg-black border-zinc-700 text-white"
-                      title="Sets"
-                    />
-                    <Input
-                      value={ex.goalReps}
-                      onChange={(e) =>
-                        updateExercise(activeDayIdx, exIdx, { goalReps: e.target.value })
-                      }
-                      className="w-20 h-7 text-xs text-center bg-black border-zinc-700 text-white"
-                      placeholder="Reps"
-                      title="Goal Reps"
-                    />
-                    <button
-                      onClick={() => {
-                        setReplacingIdx(replacingIdx === exIdx ? null : exIdx);
-                        setExSearch('');
-                      }}
-                      className={cn(
-                        'text-zinc-600 hover:text-cyan-400 transition-colors flex-shrink-0',
-                        replacingIdx === exIdx && 'text-cyan-400',
-                      )}
-                      title="Replace exercise"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => removeExercise(activeDayIdx, exIdx)}
-                      className="text-zinc-600 hover:text-rose-400 transition-colors flex-shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    {/* Row 2: Sets | Reps | Edit | Delete */}
+                    <div className="flex items-center gap-2 ml-6">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Sets</span>
+                        <Input
+                          type="number"
+                          value={ex.sets}
+                          min={1}
+                          max={10}
+                          onChange={(e) =>
+                            updateExercise(activeDayIdx, exIdx, { sets: parseInt(e.target.value) || 3 })
+                          }
+                          className="w-12 h-7 text-sm text-center bg-black border-zinc-700 text-white px-1"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Reps</span>
+                        <Input
+                          value={ex.goalReps}
+                          onChange={(e) =>
+                            updateExercise(activeDayIdx, exIdx, { goalReps: e.target.value })
+                          }
+                          className="w-16 h-7 text-sm text-center bg-black border-zinc-700 text-white px-1"
+                          placeholder="8–12"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setSwapTarget({ dayIdx: activeDayIdx, exIdx })}
+                        className="text-zinc-400 hover:text-cyan-400 transition-colors flex-shrink-0"
+                        title="Swap exercise"
+                      >
+                        <CyberStylus className="w-7 h-7" />
+                      </button>
+                      <BanishmentPortal onConfirm={() => removeExercise(activeDayIdx, exIdx)} ritualTitle={ex.name}>
+                        <button
+                          className="text-red-500 drop-shadow-[0_0_6px_rgba(239,68,68,0.6)] hover:drop-shadow-[0_0_10px_rgba(239,68,68,0.9)] transition-all flex-shrink-0"
+                          title="Remove exercise"
+                        >
+                          <DuamatefJar className="w-7 h-7" />
+                        </button>
+                      </BanishmentPortal>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* Search hints */}
-              {replacingIdx !== null && (
-                <p className="text-[10px] text-cyan-400 font-headline uppercase tracking-widest">
-                  Replacing: {activeDay.exercises[replacingIdx]?.name} — search below
-                </p>
-              )}
+              {/* Approve Day button */}
+              <div className="flex items-center justify-between gap-3 pt-1">
+                {approvedDays.has(activeDayIdx) ? (
+                  <div className="flex items-center gap-2 text-green-400 text-sm font-headline uppercase tracking-widest">
+                    <span className="text-green-400">✓</span> {activeDay.label} Approved
+                    <button
+                      onClick={() => setApprovedDays((prev) => { const next = new Set(prev); next.delete(activeDayIdx); return next; })}
+                      className="text-xs text-zinc-600 hover:text-zinc-400 underline ml-1 normal-case tracking-normal font-body"
+                    >
+                      undo
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setApprovedDays((prev) => new Set([...prev, activeDayIdx]))}
+                    className="flex-1 py-2.5 rounded-lg border-2 border-green-500 text-green-300 font-headline uppercase tracking-widest text-sm font-bold bg-transparent hover:bg-green-950/30 shadow-[0_0_12px_rgba(74,222,128,0.5)] hover:shadow-[0_0_20px_rgba(74,222,128,0.8)] transition-all"
+                  >
+                    ✓ Approve {activeDay.label}
+                  </button>
+                )}
+              </div>
 
-              {/* Add / replace exercise search */}
+              {/* Days approval status — also act as nav */}
+              <div className="flex gap-2 flex-wrap">
+                {days.map((d, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveDayIdx(i)}
+                    className={cn(
+                      'text-xs px-2 py-0.5 rounded font-headline uppercase tracking-wider border transition-all',
+                      i === activeDayIdx
+                        ? approvedDays.has(i)
+                          ? 'text-green-300 border-green-500 bg-green-950/30 shadow-[0_0_8px_rgba(74,222,128,0.3)]'
+                          : 'text-amber-400 border-amber-500 bg-amber-950/20'
+                        : approvedDays.has(i)
+                        ? 'text-green-400 border-green-700 bg-green-950/20 hover:border-green-500'
+                        : 'text-zinc-500 border-zinc-800 hover:border-zinc-600',
+                    )}
+                  >
+                    {approvedDays.has(i) ? '✓ ' : ''}{d.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Add exercise search */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-zinc-500" />
                 <Input
                   value={exSearch}
                   onChange={(e) => setExSearch(e.target.value)}
-                  placeholder={replacingIdx !== null ? 'Search replacement…' : 'Add exercise…'}
-                  className="pl-8 bg-zinc-950 border-zinc-700 text-sm text-white placeholder:text-zinc-600"
+                  placeholder="Search and add any exercise you like"
+                  className="pl-8 bg-zinc-950 border-zinc-700 text-sm text-white placeholder:text-zinc-500"
                 />
               </div>
+              {/* Unapproved days warning */}
+              {approvedDays.size < days.length && (
+                <p className="text-xs font-headline uppercase tracking-widest text-center text-amber-300 animate-pulse">
+                  ⚠ Approve Program Days
+                </p>
+              )}
+
               {exSearch && (
                 <div className="border border-zinc-800 rounded overflow-hidden max-h-40 overflow-y-auto">
                   {filteredExercises.slice(0, 8).map((ex) => (
@@ -558,27 +621,39 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
             </div>
           )}
 
-          {/* ── STEP 3: Ma'at Link ── */}
+          {/* ── STEP 3: Ma’at Link ── */}
           {step === 'link' && (
             <div className="space-y-4">
-              <div className="text-center py-4">
-                <Link2 className="w-8 h-8 text-amber-400 mx-auto mb-3" />
-                <p className="text-sm text-zinc-400">
-                  Link this program to a Daily Ritual so completing a session
-                  automatically marks the ritual complete.
-                </p>
-                <p className="text-xs text-zinc-600 mt-2">
-                  (Optional — you can link at any time from the program settings)
-                </p>
+              <div className="flex items-center gap-3">
+                <Link2 className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-zinc-300 font-headline uppercase tracking-wider">Ma’at Sync Link</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">Optionally link this program to a Daily Ritual. Completing a session will automatically mark it complete.</p>
+                </div>
               </div>
-              <div className="text-center">
-                <button
-                  onClick={handleSave}
-                  className="text-sm text-zinc-500 underline hover:text-zinc-300"
-                >
-                  Skip and create program
-                </button>
-              </div>
+
+              {/* Ritual picker */}
+              {rituals.length === 0 ? (
+                <p className="text-xs text-zinc-600 text-center py-4">No Daily Rituals found. You can link one later from the program card.</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {rituals.map((ritual) => (
+                    <RitualPickerRow
+                      key={ritual.id}
+                      ritual={ritual}
+                      selected={linkedRitualId === ritual.id}
+                      onSelect={() => setLinkedRitualId(linkedRitualId === ritual.id ? null : ritual.id)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={handleSave}
+                className="w-full text-sm text-zinc-500 hover:text-zinc-300 underline pt-2"
+              >
+                Skip — create program without a link
+              </button>
             </div>
           )}
         </div>
@@ -587,10 +662,10 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
         <div className="px-6 pb-6 pt-3 border-t border-zinc-800 flex items-center justify-between gap-3">
           <Button
             variant="ghost"
-            onClick={step === 'foundation' ? handleClose : () => setStep(step === 'architect' ? 'foundation' : 'architect')}
-            className="text-zinc-500 hover:text-zinc-300"
+            onClick={step === 'foundation' ? handleClose : () => { setStep(step === 'architect' ? 'foundation' : 'architect'); setApprovedDays(new Set()); }}
+            className="border-2 border-zinc-400 text-zinc-200 font-headline uppercase tracking-widest text-sm shadow-[0_0_12px_rgba(161,161,170,0.6)] hover:shadow-[0_0_20px_rgba(161,161,170,0.9)] hover:text-white hover:border-zinc-200 transition-all"
           >
-            {step === 'foundation' ? 'Cancel' : (
+            {step === 'foundation' ? 'Escape' : (
               <><ChevronLeft className="w-4 h-4 mr-1" /> Back</>
             )}
           </Button>
@@ -598,20 +673,20 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
           {step === 'foundation' && (
             <Button
               onClick={handleGoToArchitect}
-              className="bg-amber-600 hover:bg-amber-500 text-black font-headline uppercase tracking-widest text-sm"
+              className="bg-transparent border-2 border-green-400 text-green-300 font-headline uppercase tracking-widest text-base font-bold hover:bg-green-950/30 hover:text-green-200 hover:border-green-300 shadow-[0_0_16px_rgba(74,222,128,0.7)] hover:shadow-[0_0_28px_rgba(74,222,128,1)] animate-pulse transition-all"
             >
-              Architect Days <ChevronRight className="w-4 h-4 ml-1" />
+              INITIALIZE <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           )}
-          {step === 'architect' && (
+          {step === 'architect' && approvedDays.size === days.length && (
             <Button
               onClick={() => isEditing ? handleSave() : setStep('link')}
               disabled={saving}
-              className="bg-amber-600 hover:bg-amber-500 text-black font-headline uppercase tracking-widest text-sm"
+              className="bg-transparent border-2 border-green-400 text-green-300 font-headline uppercase tracking-widest text-base font-bold hover:bg-green-950/30 hover:text-green-200 hover:border-green-300 shadow-[0_0_16px_rgba(74,222,128,0.7)] hover:shadow-[0_0_28px_rgba(74,222,128,1)] animate-pulse transition-all"
             >
               {isEditing
-                ? (saving ? 'Saving…' : 'Save Changes')
-                : (<>Ma'at Link <ChevronRight className="w-4 h-4 ml-1" /></>)
+                ? (saving ? 'Saving…' : 'FINALIZE')
+                : (<>FINALIZE <ChevronRight className="w-4 h-4 ml-1" /></>)
               }
             </Button>
           )}
@@ -625,7 +700,81 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
             </Button>
           )}
         </div>
+
+        {/* Substitution Engine — nested inside DialogContent so closing it doesn't dismiss the wizard */}
+        {swapTarget !== null && swapEx && (
+          <SubstitutionEngine
+            open
+            onClose={() => setSwapTarget(null)}
+            currentExerciseId={swapEx.exerciseId}
+            currentExerciseName={swapEx.name}
+            onSwap={(newEx) => {
+              setDays((prev) => {
+                const next = [...prev];
+                const dayExs = [...next[swapTarget.dayIdx].exercises];
+                dayExs[swapTarget.exIdx] = { ...dayExs[swapTarget.exIdx], exerciseId: newEx.exerciseId, name: newEx.name };
+                next[swapTarget.dayIdx] = { ...next[swapTarget.dayIdx], exercises: dayExs };
+                return next;
+              });
+              setSwapTarget(null);
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// RitualPickerRow — decrypts title if needed
+// ─────────────────────────────────────────────────────────────
+
+import type { Task } from '@/lib/types';
+
+function RitualPickerRow({
+  ritual,
+  selected,
+  onSelect,
+}: {
+  ritual: Task;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const { masterKey } = useAuth();
+  const [displayTitle, setDisplayTitle] = useState(ritual.title ?? '—');
+
+  useEffect(() => {
+    const reveal = async () => {
+      if (ritual.isEncrypted && masterKey && ritual.iv) {
+        try {
+          const { decryptData, base64ToBuffer } = await import('@/lib/crypto');
+          const ivUint8 = new Uint8Array(base64ToBuffer(ritual.iv));
+          const decrypted = await decryptData(masterKey, base64ToBuffer(ritual.title), ivUint8);
+          setDisplayTitle(decrypted);
+        } catch {
+          setDisplayTitle('[Sealed Ritual]');
+        }
+      } else {
+        setDisplayTitle(ritual.title ?? '—');
+      }
+    };
+    reveal();
+  }, [ritual, masterKey]);
+
+  return (
+    <button
+      onClick={onSelect}
+      className={cn(
+        'w-full text-left px-3 py-2.5 rounded border transition-all',
+        selected
+          ? 'border-amber-500 bg-amber-950/20 text-amber-300'
+          : 'border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-900/50',
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-body">{displayTitle}</span>
+        {selected && <span className="text-amber-400 text-xs font-headline uppercase tracking-widest flex-shrink-0">Linked ✓</span>}
+      </div>
+    </button>
   );
 }

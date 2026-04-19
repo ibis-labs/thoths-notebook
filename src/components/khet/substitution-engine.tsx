@@ -86,17 +86,6 @@ export function SubstitutionEngine({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-zinc-500" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, muscle, or category…"
-            className="pl-8 bg-zinc-950 border-zinc-700 text-sm text-white placeholder:text-zinc-600"
-          />
-        </div>
-
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {loading && (
             <div className="text-center text-zinc-600 text-xs py-4">
@@ -118,8 +107,8 @@ export function SubstitutionEngine({
             </div>
           )}
 
-          {/* All others */}
-          {filteredOthers.length > 0 && (
+          {/* All others — only shown when user is actively searching */}
+          {search && filteredOthers.length > 0 && (
             <div>
               <div className="text-[9px] font-headline uppercase tracking-[0.3em] text-zinc-600 mb-1.5 px-1">
                 All Movements
@@ -137,6 +126,17 @@ export function SubstitutionEngine({
               No movements match "{search}"
             </div>
           )}
+        </div>
+
+        {/* Search — at bottom to encourage picking from equivalents first */}
+        <div className="relative pt-1">
+          <Search className="absolute left-2.5 top-3.5 w-3.5 h-3.5 text-zinc-500" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Or search any exercise by name, muscle, or category…"
+            className="pl-8 bg-zinc-950 border-zinc-700 text-sm text-white placeholder:text-zinc-600"
+          />
         </div>
       </DialogContent>
     </Dialog>
@@ -162,32 +162,28 @@ function ExerciseOption({ exercise, onSelect, highlight }: ExerciseOptionProps) 
           : 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/50',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div
-            className={cn(
-              'text-sm font-body truncate',
-              highlight
-                ? 'text-amber-300 group-hover:text-amber-200'
-                : 'text-zinc-300 group-hover:text-white',
-            )}
+      <div
+        className={cn(
+          'text-base font-body',
+          highlight
+            ? 'text-amber-300 group-hover:text-amber-200'
+            : 'text-zinc-200 group-hover:text-white',
+        )}
+      >
+        {exercise.name}
+      </div>
+      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+        <span className="text-xs text-zinc-400">
+          {exercise.primaryMuscles.slice(0, 3).join(' · ')}
+        </span>
+        {exercise.equipment.slice(0, 2).map((eq) => (
+          <span
+            key={eq}
+            className="text-xs px-1.5 py-0 rounded border border-zinc-600 text-zinc-400"
           >
-            {exercise.name}
-          </div>
-          <div className="text-[10px] text-zinc-600 mt-0.5">
-            {exercise.primaryMuscles.slice(0, 3).join(' · ')}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-0.5 justify-end flex-shrink-0">
-          {exercise.equipment.slice(0, 2).map((eq) => (
-            <span
-              key={eq}
-              className="text-[9px] px-1 py-0 rounded border border-zinc-700 text-zinc-500"
-            >
-              {eq}
-            </span>
-          ))}
-        </div>
+            {eq}
+          </span>
+        ))}
       </div>
     </button>
   );

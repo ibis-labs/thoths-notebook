@@ -92,6 +92,38 @@ function sessionReducer(
         ...state,
         cardioLog: { ...state.cardioLog, ...action.log },
       };
+    case 'TOGGLE_ABS':
+      return { ...state, absEnabled: !state.absEnabled };
+    case 'ADD_ABS_EXERCISE': {
+      const newLog: ExerciseLog = {
+        exerciseId: action.exercise.exerciseId,
+        name: action.exercise.name,
+        sets: [{ weight: 0, reps: 0, completed: false }],
+      };
+      return { ...state, absLogs: [...state.absLogs, newLog] };
+    }
+    case 'REMOVE_ABS_EXERCISE':
+      return { ...state, absLogs: state.absLogs.filter((_, i) => i !== action.absIdx) };
+    case 'UPDATE_ABS_SET': {
+      const logs = [...state.absLogs];
+      const sets = [...logs[action.absIdx].sets];
+      sets[action.setIdx] = { ...sets[action.setIdx], ...action.updates };
+      logs[action.absIdx] = { ...logs[action.absIdx], sets };
+      return { ...state, absLogs: logs };
+    }
+    case 'ADD_ABS_SET': {
+      const logs = [...state.absLogs];
+      const existing = logs[action.absIdx].sets;
+      const last = existing[existing.length - 1];
+      logs[action.absIdx] = { ...logs[action.absIdx], sets: [...existing, { weight: last?.weight ?? 0, reps: 0, completed: false }] };
+      return { ...state, absLogs: logs };
+    }
+    case 'REMOVE_ABS_SET': {
+      const logs = [...state.absLogs];
+      if (logs[action.absIdx].sets.length <= 1) return state;
+      logs[action.absIdx] = { ...logs[action.absIdx], sets: logs[action.absIdx].sets.slice(0, -1) };
+      return { ...state, absLogs: logs };
+    }
     case 'SET_NOTES':
       return { ...state, notes: action.notes };
     case 'SET_EXERCISE_NOTES': {
@@ -152,6 +184,8 @@ export function KhetSessionProvider({
       distance: 0,
       calories: 0,
     },
+    absEnabled: false,
+    absLogs: [],
     notes: '',
     startDate: new Date().toISOString(),  // full timestamp, used to compute session duration
   };

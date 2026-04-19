@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import {
   X, Trophy, Flame, Clock, Zap, BarChart2, TrendingUp,
-  Dumbbell, CheckCircle2, Weight, Pencil, Trash2, Plus,
+  Dumbbell, CheckCircle2, Weight, Pencil, Trash2, Plus, Calendar,
 } from 'lucide-react';
 import { useKhet } from '@/hooks/use-khet';
 import { cn } from '@/lib/utils';
-import type { GlobalStats, FoundationalPR, KhetUserSettings } from '@/lib/khet-types';
+import type { GlobalStats, FoundationalPR, KhetUserSettings, WeekStats } from '@/lib/khet-types';
 import { FOUNDATIONAL_MOVEMENTS } from '@/lib/khet-types';
 import type { WeightUnit } from '@/lib/khet-types';
 
@@ -465,6 +465,44 @@ export function GainzPanel({ onClose }: GainzPanelProps) {
 // Power Dashboard tab
 // ─────────────────────────────────────────────────────────────
 function PowerDashboard({ stats }: { stats: GlobalStats }) {
+  const [mode, setMode] = useState<'alltime' | 'week'>('week');
+
+  return (
+    <div className="space-y-4">
+      {/* Mode toggle */}
+      <div className="flex gap-1.5">
+        {([
+          { id: 'week',    label: 'This Week' },
+          { id: 'alltime', label: 'All Time'  },
+        ] as const).map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => setMode(id)}
+            className={cn(
+              'flex-1 py-2 rounded-lg border text-xs font-headline uppercase tracking-widest transition-all',
+              mode === id
+                ? 'border-amber-500/60 bg-amber-950/20 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                : 'border-zinc-800 text-zinc-500 hover:text-zinc-300',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'alltime' ? (
+        <AllTimeStats stats={stats} />
+      ) : (
+        <ThisWeekStats week={stats.weekStats} />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// All-time view
+// ─────────────────────────────────────────────────────────────
+function AllTimeStats({ stats }: { stats: GlobalStats }) {
   const years   = Math.floor(stats.totalDaysTraining / 365);
   const months  = Math.floor((stats.totalDaysTraining % 365) / 30);
   const days    = stats.totalDaysTraining % 30;
@@ -522,6 +560,88 @@ function PowerDashboard({ stats }: { stats: GlobalStats }) {
           <p className="text-xs text-amber-200">
             <strong>{stats.currentStreakWeeks}-week streak</strong> — The ritual holds. The stone reshapes.
           </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// This-week view
+// ─────────────────────────────────────────────────────────────
+function ThisWeekStats({ week }: { week: WeekStats }) {
+  const hours   = Math.floor(week.minutes / 60);
+  const minutes = week.minutes % 60;
+  const timeLabel = week.minutes > 0
+    ? `${hours > 0 ? `${hours}h ` : ''}${minutes}m`
+    : '—';
+
+  const WEEK_STATS = [
+    { label: 'Sessions',     value: String(week.sessions),                                icon: CheckCircle2 },
+    { label: 'Volume',       value: week.volumeKg > 0 ? `${fmt(Math.round(week.volumeKg / 1000), 1)}t` : '—', icon: Weight },
+    { label: 'Total Reps',   value: week.reps > 0 ? fmt(week.reps) : '—',                icon: TrendingUp },
+    { label: 'Time',         value: timeLabel,                                             icon: Clock },
+    { label: 'Cardio Cals',  value: week.cardioCals > 0 ? fmt(week.cardioCals) : '—',    icon: Flame },
+  ];
+
+  const weekRangeLabel = `${format(parseISO(week.weekStart), 'MMM d')} – ${format(parseISO(week.weekEnd), 'MMM d')}`;
+
+  return (
+    <div className="space-y-4">
+      {/* Week range label */}
+      <div className="flex items-center gap-2">
+        <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+        <span className="text-xs text-zinc-400 font-headline uppercase tracking-widest">{weekRangeLabel}</span>
+      </div>
+
+      {/* Day-of-week indicator */}
+      <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+        <p className="text-[9px] font-headline uppercase tracking-widest text-zinc-500 mb-2">Days Trained This Week</p>
+        <div className="flex gap-1.5 justify-between">
+          {week.days.map((d) => {
+            const isToday = d.date === format(new Date(), 'yyyy-MM-dd');
+            return (
+              <div key={d.date} className="flex flex-col items-center gap-1">
+                <div className={cn(
+                  'w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-headline transition-all',
+                  d.sessions > 0
+                    ? 'bg-amber-500/20 border border-amber-500/60 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
+                    : isToday
+                    ? 'border border-zinc-600 text-zinc-300 bg-zinc-800/50'
+                    : 'border border-zinc-800 text-zinc-600',
+                )}>
+                  {d.sessions > 0 ? '✓' : d.label[0]}
+                </div>
+                <span className={cn(
+                  'text-[9px] font-headline',
+                  isToday ? 'text-zinc-300' : 'text-zinc-600',
+                )}>{d.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Stat grid */}
+      <div className="grid grid-cols-2 gap-2">
+        {WEEK_STATS.map(({ label, value, icon: Icon }) => (
+          <div
+            key={label}
+            className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2.5 flex items-start gap-2"
+          >
+            <Icon className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-[9px] font-headline uppercase tracking-widest text-zinc-500 leading-tight">{label}</p>
+              <p className="text-sm font-headline text-amber-200 mt-0.5 leading-tight">{value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {week.sessions === 0 && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-center">
+          <p className="text-zinc-500 text-xs">No sessions logged yet this week.</p>
+          <p className="text-zinc-700 text-[10px] mt-1">Week resets every Monday.</p>
         </div>
       )}
     </div>

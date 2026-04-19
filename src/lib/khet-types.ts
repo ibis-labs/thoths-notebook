@@ -44,6 +44,7 @@ export interface WorkoutSession {
   date: string;        // ISO date string (YYYY-MM-DD)
   exerciseLogs: ExerciseLog[];
   cardioLog?: CardioLog;
+  absLogs?: ExerciseLog[];
   notes?: string;
   completed: boolean;
   totalVolume: number; // sum of weight × reps across all completed sets
@@ -93,6 +94,7 @@ export interface WorkoutProgram {
   lastDeloadStart?: string | null; // ISO date deload week began
   lastDeloadEnd?: string | null;   // ISO date deload week ended
   isDeloading?: boolean;           // true while a deload week is active
+  sessionsCompleted?: number;        // total sessions logged against this program
 }
 
 /**
@@ -184,6 +186,18 @@ export interface HeatmapDay {
 }
 
 /** Master global-stats object computed from all sessions */
+export interface WeekStats {
+  sessions: number;
+  volumeKg: number;
+  reps: number;
+  minutes: number;
+  cardioCals: number;
+  weekStart: string; // ISO date of Monday
+  weekEnd: string;   // ISO date of Sunday
+  /** Mon–Sun, 7 entries */
+  days: { date: string; label: string; sessions: number }[];
+}
+
 export interface GlobalStats {
   /** First ever session date */
   trainingStartDate: string;
@@ -205,6 +219,8 @@ export interface GlobalStats {
   heatmap: HeatmapDay[];
   /** The Hall of PRs */
   foundationalPRs: FoundationalPR[];
+  /** Stats for the current Mon–Sun week */
+  weekStats: WeekStats;
 }
 
 /** Weight unit preference — 'lbs' is the default */
@@ -257,6 +273,8 @@ export interface ActiveSessionState {
   exerciseLogs: ExerciseLog[];
   cardioEnabled: boolean;
   cardioLog: CardioLog;
+  absEnabled: boolean;
+  absLogs: ExerciseLog[];
   notes: string;
   startDate: string;
 }
@@ -268,5 +286,11 @@ export type SessionAction =
   | { type: 'SWAP_EXERCISE'; exerciseIdx: number; newExercise: ProgramExercise }
   | { type: 'TOGGLE_CARDIO' }
   | { type: 'SET_CARDIO'; log: Partial<CardioLog> }
+  | { type: 'TOGGLE_ABS' }
+  | { type: 'ADD_ABS_EXERCISE'; exercise: { exerciseId: string; name: string } }
+  | { type: 'REMOVE_ABS_EXERCISE'; absIdx: number }
+  | { type: 'UPDATE_ABS_SET'; absIdx: number; setIdx: number; updates: Partial<SetLog> }
+  | { type: 'ADD_ABS_SET'; absIdx: number }
+  | { type: 'REMOVE_ABS_SET'; absIdx: number }
   | { type: 'SET_NOTES'; notes: string }
   | { type: 'SET_EXERCISE_NOTES'; exerciseIdx: number; notes: string };

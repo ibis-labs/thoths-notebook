@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { encryptData, decryptData, bufferToBase64, base64ToBuffer } from '@/lib/crypto';
 import type { WorkoutProgram, WorkoutSession, ProgramProgress, ExercisePR, GlobalStats, FoundationalPR, KhetUserSettings, KhetManualPR, WeightUnit } from '@/lib/khet-types';
 import { FOUNDATIONAL_MOVEMENTS } from '@/lib/khet-types';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 
 // ─────────────────────────────────────────────────────────────
 // Return type
@@ -44,6 +44,7 @@ interface UseKhetReturn {
   getManualPRs: () => Promise<KhetManualPR[]>;
   setManualPR: (data: Omit<KhetManualPR, 'id' | 'userId'>) => Promise<void>;
   deleteManualPR: (movement: string) => Promise<void>;
+  getDiaryEntries: (limitCount?: number) => Promise<WorkoutSession[]>;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -126,11 +127,11 @@ async function buildSessionDoc(
     linkedRitualId: session.linkedRitualId ?? null,
   };
   if (masterKey) {
-    const sensitive = { exerciseLogs: session.exerciseLogs, cardioLog: session.cardioLog, notes: session.notes, durationMinutes: session.durationMinutes };
+    const sensitive = { exerciseLogs: session.exerciseLogs, cardioLog: session.cardioLog, absLogs: session.absLogs, notes: session.notes, durationMinutes: session.durationMinutes };
     const { ciphertext, iv } = await encryptData(masterKey, JSON.stringify(sensitive));
     return { ...plain, encryptedPayload: bufferToBase64(ciphertext), iv: bufferToBase64(iv.buffer as ArrayBuffer), isEncrypted: true };
   }
-  return { ...plain, exerciseLogs: session.exerciseLogs, cardioLog: session.cardioLog, notes: session.notes, durationMinutes: session.durationMinutes, isEncrypted: false };
+  return { ...plain, exerciseLogs: session.exerciseLogs, cardioLog: session.cardioLog, absLogs: session.absLogs, notes: session.notes, durationMinutes: session.durationMinutes, isEncrypted: false };
 }
 
 async function decryptSessionDoc(
@@ -256,6 +257,31 @@ export function useKhet(): UseKhetReturn {
   }, [user, masterKey]);
 
   /** Fetch last 3 completed sessions for a specific program day (ghost logs) */
+  const getDiaryEntries = useCallback(async (
+    limitCount = 50,
+  ): Promise<WorkoutSession[]> => {
+    if (!user) return [];
+    try {
+      const q = query(
+        collection(db, 'khetSessions'),
+        where('userId', '==', user.uid),
+        where('completed', '==', true),
+        orderBy('date', 'desc'),
+        limit(limitCount),
+      );
+      const snap = await getDocs(q);
+      const sessions: WorkoutSession[] = [];
+      for (const d of snap.docs) {
+        const raw = { id: d.id, ...d.data() } as Record<string, unknown>;
+        sessions.push(await decryptSessionDoc(raw, masterKey));
+      }
+      return sessions;
+    } catch (err) {
+      console.error('[Khet] getDiaryEntries error:', err);
+      return [];
+    }
+  }, [user, masterKey]);
+
   const getGhostLogs = useCallback(async (
     programId: string,
     dayIndex: number,
@@ -310,6 +336,7 @@ export function useKhet(): UseKhetReturn {
         lastSessionDate: data.date,
         lastSessionDayIndex: data.dayIndex,
         lifetimeVolume: (existing.lifetimeVolume ?? 0) + data.totalVolume,
+        sessionsCompleted: (existing.sessionsCompleted ?? 0) + 1,
       });
     }
 
@@ -729,6 +756,32 @@ export function useKhet(): UseKhetReturn {
         (Date.now() - new Date(trainingStartDate).getTime()) / (24 * 3600 * 1000),
       );
 
+      // ── This-week stats (Mon–Sun) ──
+      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+      const weekEnd   = endOfWeek(new Date(),   { weekStartsOn: 1 });
+      const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+      const weekEndStr   = format(weekEnd,   'yyyy-MM-dd');
+      const thisWeekSessions = sessions.filter((s) => s.date >= weekStartStr && s.date <= weekEndStr);
+      const weekDayMap: Record<string, number> = {};
+      for (const s of thisWeekSessions) weekDayMap[s.date] = (weekDayMap[s.date] ?? 0) + 1;
+      const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weekStats = {
+        sessions: thisWeekSessions.length,
+        volumeKg: Math.round(thisWeekSessions.reduce((t, s) => t + s.totalVolume, 0)),
+        reps: thisWeekSessions.reduce((t, s) =>
+          t + (s.exerciseLogs ?? []).reduce((et, el) =>
+            et + el.sets.reduce((st, set) => st + (set.completed ? (set.reps ?? 0) : 0), 0), 0), 0),
+        minutes: thisWeekSessions.reduce((t, s) => t + (s.durationMinutes ?? 0), 0),
+        cardioCals: Math.round(thisWeekSessions.reduce((t, s) => t + (s.cardioLog?.calories ?? 0), 0)),
+        weekStart: weekStartStr,
+        weekEnd: weekEndStr,
+        days: eachDayOfInterval({ start: weekStart, end: weekEnd }).map((d, i) => ({
+          date: format(d, 'yyyy-MM-dd'),
+          label: DAY_LABELS[i],
+          sessions: weekDayMap[format(d, 'yyyy-MM-dd')] ?? 0,
+        })),
+      };
+
       return {
         trainingStartDate,
         totalDaysTraining,
@@ -741,6 +794,7 @@ export function useKhet(): UseKhetReturn {
         longestStreakWeeks,
         heatmap,
         foundationalPRs,
+        weekStats,
       };
     } catch (err) {
       console.error('[Khet] getGlobalStats error:', err);
@@ -893,6 +947,7 @@ export function useKhet(): UseKhetReturn {
     getManualPRs,
     setManualPR,
     deleteManualPR,
+    getDiaryEntries,
     weightUnit,
   };
 }

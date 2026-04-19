@@ -17,6 +17,7 @@ import { useKhet } from '@/hooks/use-khet';
 import { KhetSessionProvider, useKhetSession } from '@/components/khet/khet-context';
 import { ExerciseRow } from '@/components/khet/exercise-row';
 import { CardioTracker } from '@/components/khet/cardio-tracker';
+import { AbsTracker } from '@/components/khet/abs-tracker';
 import { VolumeDashboard } from '@/components/khet/volume-dashboard';
 import { GhostLogPanel } from '@/components/khet/ghost-log';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -150,6 +151,7 @@ function SessionInner({ program, dayIndex, ghostSessions, ghostLoading }: Sessio
         date: new Date().toISOString().slice(0, 10),
         exerciseLogs: state.exerciseLogs,
         cardioLog: state.cardioEnabled ? state.cardioLog : undefined,
+        absLogs: state.absEnabled && state.absLogs.length > 0 ? state.absLogs : undefined,
         notes: state.notes,
         completed: true,
         totalVolume,
@@ -204,12 +206,12 @@ function SessionInner({ program, dayIndex, ghostSessions, ghostLoading }: Sessio
       {/* Header */}
       <div>
         <div className="flex items-baseline justify-between gap-2">
-          <h1 className="font-headline text-amber-400 text-xl uppercase tracking-widest">
+          <h1 className="font-headline text-amber-400 text-2xl uppercase tracking-widest">
             {day.label}
           </h1>
-          <span className="text-[10px] text-zinc-600 font-body">{today}</span>
+          <span className="text-sm text-zinc-300 font-body">{today}</span>
         </div>
-        <p className="text-xs text-zinc-500 mt-0.5">{program.name}</p>
+        <p className="text-base text-zinc-100 mt-1 font-headline">{program.name}</p>
 
         {/* Deload Week session-level banner */}
         {program.isDeloading && (
@@ -280,6 +282,9 @@ function SessionInner({ program, dayIndex, ghostSessions, ghostLoading }: Sessio
 
       {/* Cardio section */}
       <CardioTracker />
+
+      {/* Abs section */}
+      <AbsTracker />
 
       {/* Session notes */}
       <div>

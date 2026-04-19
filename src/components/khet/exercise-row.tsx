@@ -130,9 +130,10 @@ export function ExerciseRow({
         </div>
         {/* Row 2: Target + Alternative button */}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-zinc-400">
-            Target: {programExercise.sets} × {programExercise.goalReps} reps
-          </p>
+          <div className="space-y-0.5">
+            <p className="text-sm font-headline text-zinc-200">{programExercise.sets} sets</p>
+            <p className="text-sm font-headline text-zinc-200">Rep Range: {programExercise.goalReps}</p>
+          </div>
           <button
             onClick={() => setSwapOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-zinc-600 bg-zinc-900 hover:border-amber-500 hover:bg-amber-950/30 hover:text-amber-300 text-zinc-400 transition-all text-[10px] font-headline uppercase tracking-wider flex-shrink-0"
@@ -146,11 +147,11 @@ export function ExerciseRow({
 
       {/* ── Column Headers ── */}
       <div className="grid grid-cols-[2rem_1fr_1fr_1fr_2rem] gap-2 mb-1">
-        <div className="text-xs text-zinc-400 uppercase text-center font-headline">Set</div>
-        <div className="text-xs text-zinc-400 uppercase text-center font-headline">{weightUnit}</div>
-        <div className="text-xs text-zinc-400 uppercase text-center font-headline">Reps</div>
-        <div className="text-xs text-zinc-400 uppercase text-center font-headline">RPE</div>
-        <div className="text-xs text-zinc-400 uppercase text-center font-headline">✓</div>
+        <div className="text-sm text-zinc-200 uppercase text-center font-headline">Set</div>
+        <div className="text-sm text-zinc-200 uppercase text-center font-headline">{weightUnit}</div>
+        <div className="text-sm text-zinc-200 uppercase text-center font-headline">Reps</div>
+        <div className="text-sm text-zinc-200 uppercase text-center font-headline">RPE</div>
+        <div className="text-sm text-zinc-200 uppercase text-center font-headline">✓</div>
       </div>
 
       {/* ── Set Rows ── */}

@@ -526,5 +526,69 @@
     "primaryMuscles": ["Abs", "Hip Flexors"],
     "equipment": ["Bodyweight"],
     "equivalents": ["plank", "ab-wheel-rollout"]
+  },
+  {
+    "id": "crunch",
+    "name": "Crunch",
+    "category": "Abs",
+    "primaryMuscles": ["Rectus Abdominis"],
+    "equipment": ["Bodyweight"],
+    "equivalents": ["decline-sit-up", "cable-crunch", "machine-crunch"]
+  },
+  {
+    "id": "decline-sit-up",
+    "name": "Decline Sit-Up",
+    "category": "Abs",
+    "primaryMuscles": ["Rectus Abdominis", "Hip Flexors"],
+    "equipment": ["Decline Bench"],
+    "equivalents": ["crunch", "cable-crunch"]
+  },
+  {
+    "id": "leg-raise",
+    "name": "Leg Raise",
+    "category": "Abs",
+    "primaryMuscles": ["Lower Abs", "Hip Flexors"],
+    "equipment": ["Bodyweight"],
+    "equivalents": ["hanging-knee-raise", "dragon-flag"]
+  },
+  {
+    "id": "hanging-knee-raise",
+    "name": "Hanging Knee Raise",
+    "category": "Abs",
+    "primaryMuscles": ["Lower Abs", "Hip Flexors"],
+    "equipment": ["Pull-Up Bar"],
+    "equivalents": ["leg-raise", "toes-to-bar"]
+  },
+  {
+    "id": "cable-crunch",
+    "name": "Cable Crunch",
+    "category": "Abs",
+    "primaryMuscles": ["Rectus Abdominis"],
+    "equipment": ["Cable Machine"],
+    "equivalents": ["crunch", "decline-sit-up", "machine-crunch"]
+  },
+  {
+    "id": "russian-twist",
+    "name": "Russian Twist",
+    "category": "Abs",
+    "primaryMuscles": ["Obliques", "Rectus Abdominis"],
+    "equipment": ["Bodyweight", "Plate", "Dumbbell"],
+    "equivalents": ["woodchop", "pallof-press"]
+  },
+  {
+    "id": "ab-wheel-rollout",
+    "name": "Ab Wheel Rollout",
+    "category": "Abs",
+    "primaryMuscles": ["Rectus Abdominis", "Obliques", "Lats"],
+    "equipment": ["Ab Wheel"],
+    "equivalents": ["hollow-body-hold", "dragon-flag"]
+  },
+  {
+    "id": "toes-to-bar",
+    "name": "Toes-to-Bar",
+    "category": "Abs",
+    "primaryMuscles": ["Lower Abs", "Hip Flexors", "Lats"],
+    "equipment": ["Pull-Up Bar"],
+    "equivalents": ["hanging-knee-raise", "leg-raise"]
   }
 ]
