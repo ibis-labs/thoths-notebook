@@ -10,6 +10,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   limit,
@@ -327,11 +328,9 @@ export function useKhet(): UseKhetReturn {
 
     // 2. Update program stats
     const programRef = doc(db, 'khetPrograms', data.programId);
-    const programSnap = await getDocs(
-      query(collection(db, 'khetPrograms'), where('__name__', '==', data.programId))
-    );
-    if (!programSnap.empty) {
-      const existing = programSnap.docs[0].data() as WorkoutProgram;
+    const programSnap = await getDoc(programRef);
+    if (programSnap.exists()) {
+      const existing = programSnap.data() as WorkoutProgram;
       await updateDoc(programRef, {
         lastSessionDate: data.date,
         lastSessionDayIndex: data.dayIndex,
