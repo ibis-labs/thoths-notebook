@@ -10,9 +10,11 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   limit,
+  increment,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -325,20 +327,13 @@ export function useKhet(): UseKhetReturn {
     const sessionDoc = await buildSessionDoc({ ...data, userId: user.uid, completed: true }, masterKey);
     await addDoc(collection(db, 'khetSessions'), sessionDoc);
 
-    // 2. Update program stats
-    const programRef = doc(db, 'khetPrograms', data.programId);
-    const programSnap = await getDocs(
-      query(collection(db, 'khetPrograms'), where('__name__', '==', data.programId))
-    );
-    if (!programSnap.empty) {
-      const existing = programSnap.docs[0].data() as WorkoutProgram;
-      await updateDoc(programRef, {
-        lastSessionDate: data.date,
-        lastSessionDayIndex: data.dayIndex,
-        lifetimeVolume: (existing.lifetimeVolume ?? 0) + data.totalVolume,
-        sessionsCompleted: (existing.sessionsCompleted ?? 0) + 1,
-      });
-    }
+    // 2. Update program stats (increment atomically — no read needed)
+    await updateDoc(doc(db, 'khetPrograms', data.programId), {
+      lastSessionDate: data.date,
+      lastSessionDayIndex: data.dayIndex,
+      lifetimeVolume: increment(data.totalVolume),
+      sessionsCompleted: increment(1),
+    });
 
     // 3. Ma'at Sync: auto-complete linked Daily Ritual instance (today's)
     if (data.linkedRitualId) {

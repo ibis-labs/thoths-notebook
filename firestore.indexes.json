@@ -57,6 +57,15 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId",    "order": "ASCENDING" },
+        { "fieldPath": "completed", "order": "ASCENDING" },
+        { "fieldPath": "date",      "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "khetSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",    "order": "ASCENDING" },
         { "fieldPath": "programId", "order": "ASCENDING" },
         { "fieldPath": "completed", "order": "ASCENDING" },
         { "fieldPath": "date",      "order": "ASCENDING" }

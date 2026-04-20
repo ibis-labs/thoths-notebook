@@ -41,10 +41,14 @@ export function ExerciseRow({
   // Set Floor: 1-4 original sets → 1 deload set; 5+ → 2 deload sets
   const programSets = programExercise.sets;
   const totalSets = log.sets.length;
-  const deloadActiveSets =
+  const deloadBaseActiveSets =
     isDeloading && deloadStrategy === 'reduce-volume'
       ? programSets >= 5 ? 2 : 1
       : totalSets;
+
+  // Tracks extra sets the user manually adds during a deload week
+  const [deloadExtraSets, setDeloadExtraSets] = useState(0);
+  const deloadActiveSets = deloadBaseActiveSets + deloadExtraSets;
 
   // Pre-adjust weight (×0.6) or reps (÷2) once on mount when deloading
   const deloadApplied = useRef(false);
@@ -157,21 +161,20 @@ export function ExerciseRow({
       {/* ── Set Rows ── */}
       <div className="space-y-1.5">
         {log.sets.map((s, setIdx) => {
-          // Sets beyond deloadActiveSets are grayed during a deload week
-          const isGrayedOut = isDeloading && setIdx >= deloadActiveSets;
+          // During deload, don't render sets beyond the deload active count
+          if (isDeloading && setIdx >= deloadActiveSets) return null;
           return (
           <div
             key={setIdx}
             className={cn(
               'grid grid-cols-[2rem_1fr_1fr_1fr_2rem] gap-2 items-center rounded transition-colors',
-              isGrayedOut ? 'opacity-35' : '',
-              s.completed && !isGrayedOut ? 'bg-amber-950/20' : '',
+              s.completed ? 'bg-amber-950/20' : '',
             )}
           >
             <span
               className={cn(
                 'text-sm font-headline text-center',
-                isGrayedOut ? 'text-zinc-700 line-through' : s.completed ? 'text-amber-400' : 'text-zinc-400',
+                s.completed ? 'text-amber-400' : 'text-zinc-400',
               )}
             >
               {setIdx + 1}
@@ -189,10 +192,7 @@ export function ExerciseRow({
                   updates: { weight: parseFloat(e.target.value) || 0 },
                 })
               }
-              className={cn(
-                'h-7 text-sm text-center bg-black border-zinc-700 focus:border-cyan-500 text-white placeholder:text-zinc-700',
-                isGrayedOut && 'border-zinc-800 text-zinc-600',
-              )}
+              className="h-7 text-sm text-center bg-black border-zinc-700 focus:border-cyan-500 text-white placeholder:text-zinc-700"
             />
             <Input
               type="number"
@@ -207,10 +207,7 @@ export function ExerciseRow({
                   updates: { reps: parseInt(e.target.value) || 0 },
                 })
               }
-              className={cn(
-                'h-7 text-sm text-center bg-black border-zinc-700 focus:border-cyan-500 text-white placeholder:text-zinc-700',
-                isGrayedOut && 'border-zinc-800 text-zinc-600',
-              )}
+              className="h-7 text-sm text-center bg-black border-zinc-700 focus:border-cyan-500 text-white placeholder:text-zinc-700"
             />
             <Input
               type="number"
@@ -228,10 +225,7 @@ export function ExerciseRow({
                   },
                 })
               }
-              className={cn(
-                'h-7 text-sm text-center bg-black border-zinc-700 focus:border-cyan-500 text-white placeholder:text-zinc-700',
-                isGrayedOut && 'border-zinc-800 text-zinc-600',
-              )}
+              className="h-7 text-sm text-center bg-black border-zinc-700 focus:border-cyan-500 text-white placeholder:text-zinc-700"
             />
             <div className="flex justify-center">
               <Checkbox
@@ -245,7 +239,6 @@ export function ExerciseRow({
                   })
                 }
                 className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
-                disabled={isGrayedOut}
               />
             </div>
           </div>
@@ -256,14 +249,26 @@ export function ExerciseRow({
       {/* ── Add / Remove Set ── */}
       <div className="flex items-center gap-2 mt-2">
         <button
-          onClick={() => dispatch({ type: 'ADD_SET', exerciseIdx })}
+          onClick={() => {
+            dispatch({ type: 'ADD_SET', exerciseIdx });
+            if (isDeloading && deloadStrategy === 'reduce-volume') {
+              setDeloadExtraSets((n) => n + 1);
+            }
+          }}
           className="flex items-center gap-1 text-xs text-cyan-500 hover:text-cyan-300 transition-colors"
         >
           <Plus className="w-3 h-3" /> Add Set
         </button>
-        {log.sets.length > 1 && (
+        {(isDeloading && deloadStrategy === 'reduce-volume'
+          ? deloadExtraSets > 0
+          : log.sets.length > 1) && (
           <button
-            onClick={() => dispatch({ type: 'REMOVE_SET', exerciseIdx })}
+            onClick={() => {
+              dispatch({ type: 'REMOVE_SET', exerciseIdx });
+              if (isDeloading && deloadStrategy === 'reduce-volume') {
+                setDeloadExtraSets((n) => Math.max(0, n - 1));
+              }
+            }}
             className="flex items-center gap-1 text-xs text-zinc-500 hover:text-rose-400 transition-colors"
           >
             <Minus className="w-3 h-3" /> Remove
