@@ -157,8 +157,9 @@ export function ExerciseRow({
       {/* ── Set Rows ── */}
       <div className="space-y-1.5">
         {log.sets.map((s, setIdx) => {
-          // Sets beyond deloadActiveSets are grayed during a deload week
-          const isGrayedOut = isDeloading && setIdx >= deloadActiveSets;
+          // Original program sets beyond deloadActiveSets are grayed during a deload week.
+          // User-added sets (setIdx >= programSets) are always interactive.
+          const isGrayedOut = isDeloading && deloadStrategy === 'reduce-volume' && setIdx >= deloadActiveSets && setIdx < programSets;
           return (
           <div
             key={setIdx}
