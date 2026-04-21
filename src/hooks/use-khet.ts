@@ -24,6 +24,7 @@ import { encryptData, decryptData, bufferToBase64, base64ToBuffer } from '@/lib/
 import type { WorkoutProgram, WorkoutSession, ProgramProgress, ExercisePR, GlobalStats, FoundationalPR, KhetUserSettings, KhetManualPR, WeightUnit } from '@/lib/khet-types';
 import { FOUNDATIONAL_MOVEMENTS } from '@/lib/khet-types';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { localDateStr } from '@/lib/utils';
 
 // ─────────────────────────────────────────────────────────────
 // Return type
@@ -686,7 +687,7 @@ export function useKhet(): UseKhetReturn {
       const heatmap = Array.from({ length: 90 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (89 - i));
-        const iso = d.toISOString().slice(0, 10);
+        const iso = localDateStr(d);
         return { date: iso, count: heatmapMap[iso] ?? 0 };
       });
 

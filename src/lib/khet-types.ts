@@ -263,7 +263,17 @@ export interface Exercise {
   primaryMuscles: string[];
   equipment: string[];
   equivalents: string[]; // array of exercise IDs with biomechanical similarity
+  /** Hypertrophy engine fields (populated in full_expanded_exercises.json) */
+  tier?: 1 | 2 | 3;
+  pattern?: string;
+  suggestedReps?: string;
+  cues?: string[];
 }
+
+/** User Discovery Phase inputs for the Hypertrophy Engine */
+export type ProgramGoal = 'Aesthetics' | 'Strength' | 'Conditioning';
+export type ProgramTimeSlot = '45m' | '60m' | '90m';
+export type ProgramEquipment = 'Full Gym' | 'Home' | 'Dumbbells Only';
 
 // ─────────────────────────────────────────────────────────────
 // Session Reducer Types (used by the active session page)

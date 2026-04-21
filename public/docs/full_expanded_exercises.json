@@ -1,0 +1,1827 @@
+[
+  {
+    "id": "barbell-back-squat",
+    "name": "Barbell Back Squat",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Quadriceps",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": [
+      "Barbell",
+      "Rack"
+    ],
+    "equivalents": [
+      "hack-squat",
+      "smith-machine-squat",
+      "leg-press",
+      "goblet-squat",
+      "bulgarian-split-squat"
+    ],
+    "tier": 1,
+    "pattern": "Quad Dominant",
+    "suggestedReps": "6-8",
+    "cues": [
+      "Keep core braced.",
+      "Lower until thighs parallel.",
+      "Drive through mid-foot."
+    ]
+  },
+  {
+    "id": "hack-squat",
+    "name": "Hack Squat",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": [
+      "Machine"
+    ],
+    "equivalents": [
+      "barbell-back-squat",
+      "smith-machine-squat",
+      "leg-press"
+    ],
+    "tier": 3,
+    "pattern": "Quad Dominant",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Keep core braced.",
+      "Lower until thighs parallel.",
+      "Drive through mid-foot."
+    ]
+  },
+  {
+    "id": "smith-machine-squat",
+    "name": "Smith Machine Squat",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Quadriceps",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": [
+      "Smith Machine"
+    ],
+    "equivalents": [
+      "barbell-back-squat",
+      "hack-squat",
+      "leg-press"
+    ],
+    "tier": 2,
+    "pattern": "Quad Dominant",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Keep core braced.",
+      "Lower until thighs parallel.",
+      "Drive through mid-foot."
+    ]
+  },
+  {
+    "id": "leg-press",
+    "name": "Leg Press",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": [
+      "Machine"
+    ],
+    "equivalents": [
+      "barbell-back-squat",
+      "hack-squat",
+      "goblet-squat"
+    ],
+    "tier": 2,
+    "pattern": "Quad Dominant",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "goblet-squat",
+    "name": "Goblet Squat",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Kettlebell"
+    ],
+    "equivalents": [
+      "barbell-back-squat",
+      "leg-press",
+      "bulgarian-split-squat"
+    ],
+    "tier": 3,
+    "pattern": "Quad Dominant",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Keep core braced.",
+      "Lower until thighs parallel.",
+      "Drive through mid-foot."
+    ]
+  },
+  {
+    "id": "bulgarian-split-squat",
+    "name": "Bulgarian Split Squat",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Quadriceps",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Barbell"
+    ],
+    "equivalents": [
+      "barbell-back-squat",
+      "goblet-squat",
+      "walking-lunge"
+    ],
+    "tier": 3,
+    "pattern": "Quad Dominant",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Keep core braced.",
+      "Lower until thighs parallel.",
+      "Drive through mid-foot."
+    ]
+  },
+  {
+    "id": "walking-lunge",
+    "name": "Walking Lunge",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Quadriceps",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "bulgarian-split-squat",
+      "goblet-squat",
+      "leg-press"
+    ],
+    "tier": 3,
+    "pattern": "Unilateral Leg",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "romanian-deadlift",
+    "name": "Romanian Deadlift",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Hamstrings",
+      "Glutes",
+      "Lower Back"
+    ],
+    "equipment": [
+      "Barbell",
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "leg-curl",
+      "stiff-leg-deadlift",
+      "good-morning"
+    ],
+    "tier": 1,
+    "pattern": "Hinge/Posterior",
+    "suggestedReps": "6-8",
+    "cues": [
+      "Maintain neutral spine.",
+      "Hinge at hips.",
+      "Keep weight close to body."
+    ]
+  },
+  {
+    "id": "stiff-leg-deadlift",
+    "name": "Stiff-Leg Deadlift",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Hamstrings",
+      "Glutes",
+      "Lower Back"
+    ],
+    "equipment": [
+      "Barbell",
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "romanian-deadlift",
+      "leg-curl"
+    ],
+    "tier": 3,
+    "pattern": "Hinge/Posterior",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Maintain neutral spine.",
+      "Hinge at hips.",
+      "Keep weight close to body."
+    ]
+  },
+  {
+    "id": "leg-curl",
+    "name": "Lying Leg Curl",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Hamstrings"
+    ],
+    "equipment": [
+      "Machine"
+    ],
+    "equivalents": [
+      "romanian-deadlift",
+      "seated-leg-curl",
+      "nordic-curl"
+    ],
+    "tier": 3,
+    "pattern": "Hinge/Posterior",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "seated-leg-curl",
+    "name": "Seated Leg Curl",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Hamstrings"
+    ],
+    "equipment": [
+      "Machine"
+    ],
+    "equivalents": [
+      "leg-curl",
+      "romanian-deadlift"
+    ],
+    "tier": 3,
+    "pattern": "Hinge/Posterior",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "leg-extension",
+    "name": "Leg Extension",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Quadriceps"
+    ],
+    "equipment": [
+      "Machine"
+    ],
+    "equivalents": [
+      "barbell-back-squat",
+      "hack-squat",
+      "leg-press"
+    ],
+    "tier": 3,
+    "pattern": "Quad Dominant",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "calf-raise",
+    "name": "Standing Calf Raise",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Calves"
+    ],
+    "equipment": [
+      "Machine",
+      "Dumbbell",
+      "Barbell"
+    ],
+    "equivalents": [
+      "seated-calf-raise",
+      "donkey-calf-raise"
+    ],
+    "tier": 3,
+    "pattern": "Calf Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "seated-calf-raise",
+    "name": "Seated Calf Raise",
+    "category": "Legs",
+    "primaryMuscles": [
+      "Calves",
+      "Soleus"
+    ],
+    "equipment": [
+      "Machine"
+    ],
+    "equivalents": [
+      "calf-raise"
+    ],
+    "tier": 3,
+    "pattern": "Calf Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "barbell-bench-press",
+    "name": "Barbell Bench Press",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Chest",
+      "Triceps",
+      "Anterior Deltoid"
+    ],
+    "equipment": [
+      "Barbell",
+      "Bench"
+    ],
+    "equivalents": [
+      "dumbbell-bench-press",
+      "smith-machine-bench",
+      "push-up",
+      "dip"
+    ],
+    "tier": 1,
+    "pattern": "Horizontal Push",
+    "suggestedReps": "6-8",
+    "cues": [
+      "Retract scapula.",
+      "Keep feet flat on floor.",
+      "Touch bar to lower chest."
+    ]
+  },
+  {
+    "id": "dumbbell-bench-press",
+    "name": "Dumbbell Bench Press",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Chest",
+      "Triceps",
+      "Anterior Deltoid"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Bench"
+    ],
+    "equivalents": [
+      "barbell-bench-press",
+      "smith-machine-bench",
+      "push-up"
+    ],
+    "tier": 2,
+    "pattern": "Horizontal Push",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Retract scapula.",
+      "Keep feet flat on floor.",
+      "Touch bar to lower chest."
+    ]
+  },
+  {
+    "id": "smith-machine-bench",
+    "name": "Smith Machine Bench Press",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Chest",
+      "Triceps"
+    ],
+    "equipment": [
+      "Smith Machine",
+      "Bench"
+    ],
+    "equivalents": [
+      "barbell-bench-press",
+      "dumbbell-bench-press"
+    ],
+    "tier": 2,
+    "pattern": "Horizontal Push",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Retract scapula.",
+      "Keep feet flat on floor.",
+      "Touch bar to lower chest."
+    ]
+  },
+  {
+    "id": "incline-barbell-press",
+    "name": "Incline Barbell Press",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Upper Chest",
+      "Triceps",
+      "Anterior Deltoid"
+    ],
+    "equipment": [
+      "Barbell",
+      "Incline Bench"
+    ],
+    "equivalents": [
+      "incline-dumbbell-press",
+      "incline-cable-press",
+      "low-to-high-cable-fly"
+    ],
+    "tier": 1,
+    "pattern": "Incline Push",
+    "suggestedReps": "6-8",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "incline-dumbbell-press",
+    "name": "Incline Dumbbell Press",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Upper Chest",
+      "Triceps",
+      "Anterior Deltoid"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Incline Bench"
+    ],
+    "equivalents": [
+      "incline-barbell-press",
+      "incline-cable-press"
+    ],
+    "tier": 2,
+    "pattern": "Incline Push",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "cable-fly",
+    "name": "Cable Fly",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "dumbbell-fly",
+      "pec-deck",
+      "low-to-high-cable-fly"
+    ],
+    "tier": 3,
+    "pattern": "Chest Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "dumbbell-fly",
+    "name": "Dumbbell Fly",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Bench"
+    ],
+    "equivalents": [
+      "cable-fly",
+      "pec-deck"
+    ],
+    "tier": 3,
+    "pattern": "Chest Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "pec-deck",
+    "name": "Pec Deck",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "equipment": [
+      "Machine"
+    ],
+    "equivalents": [
+      "cable-fly",
+      "dumbbell-fly"
+    ],
+    "tier": 3,
+    "pattern": "Chest Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "push-up",
+    "name": "Push-Up",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Chest",
+      "Triceps",
+      "Anterior Deltoid"
+    ],
+    "equipment": [
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "barbell-bench-press",
+      "dumbbell-bench-press",
+      "dip"
+    ],
+    "tier": 3,
+    "pattern": "Horizontal Push",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "dip",
+    "name": "Dip (Chest)",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Chest",
+      "Triceps"
+    ],
+    "equipment": [
+      "Dip Bar",
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "push-up",
+      "cable-fly",
+      "dumbbell-bench-press"
+    ],
+    "tier": 1,
+    "pattern": "Vertical Push",
+    "suggestedReps": "6-8",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "low-to-high-cable-fly",
+    "name": "Low-to-High Cable Fly",
+    "category": "Chest",
+    "primaryMuscles": [
+      "Upper Chest"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "incline-dumbbell-press",
+      "cable-fly",
+      "pec-deck"
+    ],
+    "tier": 3,
+    "pattern": "Chest Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "barbell-row",
+    "name": "Barbell Row",
+    "category": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Rhomboids",
+      "Rear Deltoid",
+      "Biceps"
+    ],
+    "equipment": [
+      "Barbell"
+    ],
+    "equivalents": [
+      "dumbbell-row",
+      "cable-row",
+      "t-bar-row",
+      "chest-supported-row"
+    ],
+    "tier": 1,
+    "pattern": "Horizontal Pull",
+    "suggestedReps": "6-8",
+    "cues": [
+      "Pull with elbows.",
+      "Squeeze shoulder blades.",
+      "Avoid using momentum."
+    ]
+  },
+  {
+    "id": "dumbbell-row",
+    "name": "Dumbbell Row",
+    "category": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Rhomboids",
+      "Rear Deltoid"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Bench"
+    ],
+    "equivalents": [
+      "barbell-row",
+      "cable-row",
+      "chest-supported-row"
+    ],
+    "tier": 2,
+    "pattern": "Horizontal Pull",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Pull with elbows.",
+      "Squeeze shoulder blades.",
+      "Avoid using momentum."
+    ]
+  },
+  {
+    "id": "cable-row",
+    "name": "Seated Cable Row",
+    "category": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Rhomboids",
+      "Biceps"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "barbell-row",
+      "dumbbell-row",
+      "t-bar-row"
+    ],
+    "tier": 3,
+    "pattern": "Horizontal Pull",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Pull with elbows.",
+      "Squeeze shoulder blades.",
+      "Avoid using momentum."
+    ]
+  },
+  {
+    "id": "t-bar-row",
+    "name": "T-Bar Row",
+    "category": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Rhomboids",
+      "Rear Deltoid"
+    ],
+    "equipment": [
+      "T-Bar Machine",
+      "Barbell"
+    ],
+    "equivalents": [
+      "barbell-row",
+      "cable-row",
+      "chest-supported-row"
+    ],
+    "tier": 3,
+    "pattern": "Horizontal Pull",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Pull with elbows.",
+      "Squeeze shoulder blades.",
+      "Avoid using momentum."
+    ]
+  },
+  {
+    "id": "chest-supported-row",
+    "name": "Chest-Supported Row",
+    "category": "Back",
+    "primaryMuscles": [
+      "Rhomboids",
+      "Rear Deltoid",
+      "Lats"
+    ],
+    "equipment": [
+      "Machine",
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "barbell-row",
+      "dumbbell-row",
+      "cable-row"
+    ],
+    "tier": 3,
+    "pattern": "Horizontal Pull",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Pull with elbows.",
+      "Squeeze shoulder blades.",
+      "Avoid using momentum."
+    ]
+  },
+  {
+    "id": "pull-up",
+    "name": "Pull-Up",
+    "category": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Biceps"
+    ],
+    "equipment": [
+      "Pull-Up Bar",
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "lat-pulldown",
+      "assisted-pull-up",
+      "close-grip-pulldown"
+    ],
+    "tier": 1,
+    "pattern": "Vertical Pull",
+    "suggestedReps": "6-8",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "lat-pulldown",
+    "name": "Lat Pulldown",
+    "category": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Biceps"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "pull-up",
+      "close-grip-pulldown",
+      "straight-arm-pulldown"
+    ],
+    "tier": 3,
+    "pattern": "Vertical Pull",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "close-grip-pulldown",
+    "name": "Close-Grip Pulldown",
+    "category": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Biceps"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "lat-pulldown",
+      "pull-up"
+    ],
+    "tier": 3,
+    "pattern": "Vertical Pull",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "straight-arm-pulldown",
+    "name": "Straight-Arm Pulldown",
+    "category": "Back",
+    "primaryMuscles": [
+      "Lats"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "lat-pulldown",
+      "pull-up"
+    ],
+    "tier": 3,
+    "pattern": "Vertical Pull",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "face-pull",
+    "name": "Face Pull",
+    "category": "Back",
+    "primaryMuscles": [
+      "Rear Deltoid",
+      "Rotator Cuff"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "rear-delt-fly",
+      "band-pull-apart"
+    ],
+    "tier": 3,
+    "pattern": "Vertical Pull",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "rear-delt-fly",
+    "name": "Rear Delt Fly",
+    "category": "Back",
+    "primaryMuscles": [
+      "Rear Deltoid"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Machine"
+    ],
+    "equivalents": [
+      "face-pull",
+      "band-pull-apart",
+      "cable-reverse-fly"
+    ],
+    "tier": 3,
+    "pattern": "Rear Delt/Scapular",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "barbell-ohp",
+    "name": "Barbell Overhead Press",
+    "category": "Shoulders",
+    "primaryMuscles": [
+      "Anterior Deltoid",
+      "Lateral Deltoid",
+      "Triceps"
+    ],
+    "equipment": [
+      "Barbell"
+    ],
+    "equivalents": [
+      "dumbbell-ohp",
+      "arnold-press",
+      "machine-ohp",
+      "push-press"
+    ],
+    "tier": 1,
+    "pattern": "Vertical Push",
+    "suggestedReps": "6-8",
+    "cues": [
+      "Press bar straight up.",
+      "Tuck chin slightly.",
+      "Fully extend at top."
+    ]
+  },
+  {
+    "id": "dumbbell-ohp",
+    "name": "Dumbbell Overhead Press",
+    "category": "Shoulders",
+    "primaryMuscles": [
+      "Anterior Deltoid",
+      "Lateral Deltoid",
+      "Triceps"
+    ],
+    "equipment": [
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "barbell-ohp",
+      "arnold-press",
+      "machine-ohp"
+    ],
+    "tier": 2,
+    "pattern": "Vertical Push",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Press bar straight up.",
+      "Tuck chin slightly.",
+      "Fully extend at top."
+    ]
+  },
+  {
+    "id": "arnold-press",
+    "name": "Arnold Press",
+    "category": "Shoulders",
+    "primaryMuscles": [
+      "Anterior Deltoid",
+      "Lateral Deltoid"
+    ],
+    "equipment": [
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "barbell-ohp",
+      "dumbbell-ohp"
+    ],
+    "tier": 3,
+    "pattern": "Vertical Push",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "machine-ohp",
+    "name": "Machine Overhead Press",
+    "category": "Shoulders",
+    "primaryMuscles": [
+      "Anterior Deltoid",
+      "Triceps"
+    ],
+    "equipment": [
+      "Machine"
+    ],
+    "equivalents": [
+      "barbell-ohp",
+      "dumbbell-ohp"
+    ],
+    "tier": 2,
+    "pattern": "Vertical Push",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Press bar straight up.",
+      "Tuck chin slightly.",
+      "Fully extend at top."
+    ]
+  },
+  {
+    "id": "lateral-raise",
+    "name": "Lateral Raise",
+    "category": "Shoulders",
+    "primaryMuscles": [
+      "Lateral Deltoid"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "cable-lateral-raise",
+      "machine-lateral-raise"
+    ],
+    "tier": 3,
+    "pattern": "Lateral Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "cable-lateral-raise",
+    "name": "Cable Lateral Raise",
+    "category": "Shoulders",
+    "primaryMuscles": [
+      "Lateral Deltoid"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "lateral-raise",
+      "machine-lateral-raise"
+    ],
+    "tier": 3,
+    "pattern": "Lateral Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "front-raise",
+    "name": "Front Raise",
+    "category": "Shoulders",
+    "primaryMuscles": [
+      "Anterior Deltoid"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "barbell-ohp",
+      "cable-lateral-raise"
+    ],
+    "tier": 3,
+    "pattern": "Front Delt Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "barbell-curl",
+    "name": "Barbell Curl",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Biceps"
+    ],
+    "equipment": [
+      "Barbell",
+      "EZ-Bar"
+    ],
+    "equivalents": [
+      "dumbbell-curl",
+      "hammer-curl",
+      "preacher-curl",
+      "cable-curl"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "dumbbell-curl",
+    "name": "Dumbbell Curl",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Biceps"
+    ],
+    "equipment": [
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "barbell-curl",
+      "hammer-curl",
+      "preacher-curl"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "hammer-curl",
+    "name": "Hammer Curl",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Biceps",
+      "Brachialis"
+    ],
+    "equipment": [
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "barbell-curl",
+      "cable-curl",
+      "dumbbell-curl"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "preacher-curl",
+    "name": "Preacher Curl",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Biceps"
+    ],
+    "equipment": [
+      "EZ-Bar",
+      "Dumbbell",
+      "Machine"
+    ],
+    "equivalents": [
+      "barbell-curl",
+      "cable-curl"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "cable-curl",
+    "name": "Cable Curl",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Biceps"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "barbell-curl",
+      "dumbbell-curl",
+      "preacher-curl"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "tricep-pushdown",
+    "name": "Tricep Pushdown",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Triceps"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "skull-crusher",
+      "overhead-tricep-extension",
+      "close-grip-bench"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "skull-crusher",
+    "name": "Skull Crusher",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Triceps"
+    ],
+    "equipment": [
+      "Barbell",
+      "EZ-Bar",
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "tricep-pushdown",
+      "overhead-tricep-extension",
+      "close-grip-bench"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "overhead-tricep-extension",
+    "name": "Overhead Tricep Extension",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Triceps (Long Head)"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Cable Machine",
+      "EZ-Bar"
+    ],
+    "equivalents": [
+      "skull-crusher",
+      "tricep-pushdown"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Focus on controlled movement.",
+      "Ensure full range of motion.",
+      "Breathe steadily throughout."
+    ]
+  },
+  {
+    "id": "close-grip-bench",
+    "name": "Close-Grip Bench Press",
+    "category": "Arms",
+    "primaryMuscles": [
+      "Triceps",
+      "Chest"
+    ],
+    "equipment": [
+      "Barbell"
+    ],
+    "equivalents": [
+      "tricep-pushdown",
+      "skull-crusher",
+      "dip"
+    ],
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Retract scapula.",
+      "Keep feet flat on floor.",
+      "Touch bar to lower chest."
+    ]
+  },
+  {
+    "id": "plank",
+    "name": "Plank",
+    "category": "Core",
+    "primaryMuscles": [
+      "Abs",
+      "Obliques"
+    ],
+    "equipment": [
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "ab-wheel-rollout",
+      "hollow-body-hold"
+    ],
+    "tier": 3,
+    "pattern": "Core Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Maintain a rigid line from head to heel — no sagging hips.",
+      "Brace your abs as if bracing for a punch.",
+      "Keep glutes squeezed and neck neutral.",
+      "Breathe steadily — don't hold your breath."
+    ]
+  },
+  {
+    "id": "ab-wheel-rollout",
+    "name": "Ab Wheel Rollout",
+    "category": "Core",
+    "primaryMuscles": [
+      "Abs",
+      "Lats"
+    ],
+    "equipment": [
+      "Ab Wheel"
+    ],
+    "equivalents": [
+      "plank",
+      "cable-crunch",
+      "hanging-leg-raise"
+    ],
+    "tier": 3,
+    "pattern": "Core Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Start on knees — keep hips from sagging as you roll out.",
+      "Brace abs hard before rolling; your core should not relax.",
+      "Roll out only as far as you can keep a neutral spine.",
+      "Pull back with your lats, not momentum."
+    ]
+  },
+  {
+    "id": "cable-crunch",
+    "name": "Cable Crunch",
+    "category": "Core",
+    "primaryMuscles": [
+      "Abs"
+    ],
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equivalents": [
+      "crunch",
+      "ab-wheel-rollout",
+      "hanging-leg-raise"
+    ],
+    "tier": 3,
+    "pattern": "Core Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Kneel facing the cable — rope held at forehead, elbows pointing down.",
+      "Crunch your ribs toward your hips, not your head toward the floor.",
+      "Hold the contracted position for a full second.",
+      "Let the weight stretch you fully on the way up — don't rush the eccentric."
+    ]
+  },
+  {
+    "id": "hanging-leg-raise",
+    "name": "Hanging Leg Raise",
+    "category": "Core",
+    "primaryMuscles": [
+      "Abs",
+      "Hip Flexors"
+    ],
+    "equipment": [
+      "Pull-Up Bar"
+    ],
+    "equivalents": [
+      "cable-crunch",
+      "ab-wheel-rollout"
+    ],
+    "tier": 3,
+    "pattern": "Core Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Start with a dead hang — no swing.",
+      "Posterior tilt your pelvis before lifting — this activates abs over hip flexors.",
+      "Raise legs to 90° or higher in a controlled arc.",
+      "Lower slowly — the eccentric is where the work happens."
+    ]
+  },
+  {
+    "id": "crunch",
+    "name": "Crunch",
+    "category": "Abs",
+    "primaryMuscles": [
+      "Rectus Abdominis"
+    ],
+    "equipment": [
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "decline-sit-up",
+      "cable-crunch",
+      "machine-crunch"
+    ],
+    "tier": 3,
+    "pattern": "Abs Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Cross arms over chest or place fingertips behind ears — never pull on your neck.",
+      "Curl your ribcage toward your pelvis, not your head toward your knees.",
+      "Exhale and squeeze hard at the top; pause for one second.",
+      "Lower with control — don't let momentum do the reps."
+    ]
+  },
+  {
+    "id": "decline-sit-up",
+    "name": "Decline Sit-Up",
+    "category": "Abs",
+    "primaryMuscles": [
+      "Rectus Abdominis",
+      "Hip Flexors"
+    ],
+    "equipment": [
+      "Decline Bench"
+    ],
+    "equivalents": [
+      "crunch",
+      "cable-crunch"
+    ],
+    "tier": 3,
+    "pattern": "Abs Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Secure feet and lower slowly under control — 3 seconds down.",
+      "Cross arms on chest; avoid pulling the neck.",
+      "At the top, crunch hard and hold briefly before descending.",
+      "Add a plate to chest for progressive overload."
+    ]
+  },
+  {
+    "id": "leg-raise",
+    "name": "Leg Raise",
+    "category": "Abs",
+    "primaryMuscles": [
+      "Lower Abs",
+      "Hip Flexors"
+    ],
+    "equipment": [
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "hanging-knee-raise",
+      "dragon-flag"
+    ],
+    "tier": 3,
+    "pattern": "Abs Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Lie flat; press lower back into the floor throughout.",
+      "Keep legs straight or slightly bent — straight is harder.",
+      "Raise until legs are vertical, then lower slowly.",
+      "Stop just before heels touch the floor to maintain tension."
+    ]
+  },
+  {
+    "id": "hanging-knee-raise",
+    "name": "Hanging Knee Raise",
+    "category": "Abs",
+    "primaryMuscles": [
+      "Lower Abs",
+      "Hip Flexors"
+    ],
+    "equipment": [
+      "Pull-Up Bar"
+    ],
+    "equivalents": [
+      "leg-raise",
+      "toes-to-bar"
+    ],
+    "tier": 3,
+    "pattern": "Abs Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Dead hang start — eliminate all swing before lifting.",
+      "Drive knees toward chest using abs, not hip flexor momentum.",
+      "Round your lower back slightly at the top for full ab contraction.",
+      "Lower with control over 2 seconds."
+    ]
+  },
+  {
+    "id": "russian-twist",
+    "name": "Russian Twist",
+    "category": "Abs",
+    "primaryMuscles": [
+      "Obliques",
+      "Rectus Abdominis"
+    ],
+    "equipment": [
+      "Bodyweight",
+      "Plate",
+      "Dumbbell"
+    ],
+    "equivalents": [
+      "woodchop",
+      "pallof-press"
+    ],
+    "tier": 3,
+    "pattern": "Abs Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Lean back to ~45° — the more you lean, the harder it gets.",
+      "Keep feet off the floor for maximum core engagement.",
+      "Rotate from the torso, not just the arms — touch the floor each side.",
+      "Hold a plate or dumbbell for progressive overload."
+    ]
+  },
+  {
+    "id": "toes-to-bar",
+    "name": "Toes-to-Bar",
+    "category": "Abs",
+    "primaryMuscles": [
+      "Lower Abs",
+      "Hip Flexors",
+      "Lats"
+    ],
+    "equipment": [
+      "Pull-Up Bar"
+    ],
+    "equivalents": [
+      "hanging-knee-raise",
+      "leg-raise"
+    ],
+    "tier": 3,
+    "pattern": "Abs Isolation",
+    "suggestedReps": "15-20",
+    "cues": [
+      "Begin with a hollow-body hang — engage lats and brace abs.",
+      "Drive toes up in a controlled arc, not a kip.",
+      "Touch bar with toes at the top, then slowly reverse.",
+      "If form breaks, switch to hanging knee raises to finish the set."
+    ]
+  },
+  {
+    "id": "z-press",
+    "name": "Z-Press",
+    "category": "Shoulders",
+    "tier": 1,
+    "pattern": "Vertical Push",
+    "primaryMuscles": [
+      "Shoulders",
+      "Core",
+      "Triceps"
+    ],
+    "equipment": [
+      "Barbell",
+      "Dumbbell"
+    ],
+    "suggestedReps": "8-10",
+    "cues": [
+      "Sit on floor with legs straight out.",
+      "Press weight overhead while maintaining upright posture.",
+      "Brace core heavily."
+    ],
+    "equivalents": [
+      "barbell-ohp",
+      "seated-dumbbell-press"
+    ]
+  },
+  {
+    "id": "pendlay-row",
+    "name": "Pendlay Row",
+    "category": "Back",
+    "tier": 1,
+    "pattern": "Horizontal Pull",
+    "primaryMuscles": [
+      "Lats",
+      "Upper Back",
+      "Lower Back"
+    ],
+    "equipment": [
+      "Barbell"
+    ],
+    "suggestedReps": "6-8",
+    "cues": [
+      "Start with bar on floor.",
+      "Pull bar to chest explosively.",
+      "Return bar to floor every rep."
+    ],
+    "equivalents": [
+      "barbell-row",
+      "t-bar-row"
+    ]
+  },
+  {
+    "id": "landmine-press",
+    "name": "Landmine Press",
+    "category": "Shoulders/Chest",
+    "tier": 2,
+    "pattern": "Incline Push",
+    "primaryMuscles": [
+      "Front Delts",
+      "Upper Chest"
+    ],
+    "equipment": [
+      "Barbell",
+      "Landmine Attachment"
+    ],
+    "suggestedReps": "10-12",
+    "cues": [
+      "Hold bar at shoulder height.",
+      "Lean slightly into the bar.",
+      "Press upward and forward."
+    ],
+    "equivalents": [
+      "incline-dumbbell-press",
+      "iso-lateral-super-incline"
+    ]
+  },
+  {
+    "id": "spider-curl",
+    "name": "Spider Curl",
+    "category": "Arms",
+    "tier": 3,
+    "pattern": "Arms Isolation",
+    "primaryMuscles": [
+      "Biceps"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "EZ-Bar",
+      "Incline Bench"
+    ],
+    "suggestedReps": "12-15",
+    "cues": [
+      "Lay chest-down on incline bench.",
+      "Let arms hang straight down.",
+      "Curl weight toward shoulders."
+    ],
+    "equivalents": [
+      "preacher-curl",
+      "concentration-curl"
+    ]
+  },
+  {
+    "id": "tricep-dips-weighted",
+    "name": "Weighted Tricep Dip",
+    "category": "Arms",
+    "tier": 1,
+    "pattern": "Vertical Push",
+    "primaryMuscles": [
+      "Triceps",
+      "Chest",
+      "Shoulders"
+    ],
+    "equipment": [
+      "Dip Bar",
+      "Belt",
+      "Plates"
+    ],
+    "suggestedReps": "8-10",
+    "cues": [
+      "Keep torso upright to focus on triceps.",
+      "Lower until elbows at 90 degrees.",
+      "Lock out fully at top."
+    ],
+    "equivalents": [
+      "dip",
+      "close-grip-bench"
+    ]
+  },
+  {
+    "id": "sissy-squat",
+    "name": "Sissy Squat",
+    "category": "Legs",
+    "tier": 3,
+    "pattern": "Quad Dominant",
+    "primaryMuscles": [
+      "Quadriceps"
+    ],
+    "equipment": [
+      "Bodyweight",
+      "Sissy Squat Bench"
+    ],
+    "suggestedReps": "15-20",
+    "cues": [
+      "Lean back while keeping hips forward.",
+      "Lower until knees nearly touch floor.",
+      "Drive back up using quads only."
+    ],
+    "equivalents": [
+      "leg-extension"
+    ]
+  },
+  {
+    "id": "rear-delt-row",
+    "name": "Rear Delt Row",
+    "category": "Back",
+    "tier": 3,
+    "pattern": "Rear Delt/Scapular",
+    "primaryMuscles": [
+      "Rear Delts",
+      "Upper Back"
+    ],
+    "equipment": [
+      "Dumbbell",
+      "Barbell"
+    ],
+    "suggestedReps": "12-15",
+    "cues": [
+      "Pull elbows out wide (90 degrees).",
+      "Squeeze rear delts at top.",
+      "Don't pull all the way to chest."
+    ],
+    "equivalents": [
+      "rear-delt-fly",
+      "face-pull"
+    ]
+  },
+  {
+    "id": "farmers-walk",
+    "name": "Farmer's Walk",
+    "category": "Full Body/Forearms",
+    "tier": 2,
+    "pattern": "Conditioning",
+    "primaryMuscles": [
+      "Forearms",
+      "Core",
+      "Traps"
+    ],
+    "equipment": [
+      "Dumbbells",
+      "Kettlebells",
+      "Farmer Handles"
+    ],
+    "suggestedReps": "Timed",
+    "cues": [
+      "Stand tall with shoulder blades back.",
+      "Take short, quick steps.",
+      "Maintain tight grip throughout."
+    ],
+    "equivalents": [
+      "deadlift"
+    ]
+  },
+  {
+    "id": "side-plank",
+    "name": "Side Plank",
+    "category": "Core",
+    "primaryMuscles": [
+      "Obliques",
+      "Abs",
+      "Glutes"
+    ],
+    "equipment": [
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "plank",
+      "dead-bug",
+      "cable-crunch"
+    ],
+    "tier": 3,
+    "pattern": "Core Isolation",
+    "suggestedReps": "30-45 sec",
+    "cues": [
+      "Stack feet or stagger for stability.",
+      "Drive hip up — don't let it sag.",
+      "Keep body in a straight line from head to heel.",
+      "Brace the obliques, not just the shoulder."
+    ]
+  },
+  {
+    "id": "dead-bug",
+    "name": "Dead Bug",
+    "category": "Core",
+    "primaryMuscles": [
+      "Abs",
+      "Transverse Abdominis",
+      "Lower Back"
+    ],
+    "equipment": [
+      "Bodyweight"
+    ],
+    "equivalents": [
+      "plank",
+      "side-plank",
+      "ab-wheel-rollout"
+    ],
+    "tier": 3,
+    "pattern": "Core Isolation",
+    "suggestedReps": "10-12",
+    "cues": [
+      "Press lower back flat into the floor — keep it there.",
+      "Extend opposite arm and leg simultaneously.",
+      "Move slowly and with full control — speed kills the stimulus.",
+      "Exhale as you extend; inhale to reset."
+    ]
+  }
+]

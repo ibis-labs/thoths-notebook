@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { X, FlameKindling, Plus, Minus, CheckCircle2 } from 'lucide-react';
+import { X, FlameKindling, Plus, Minus, CheckCircle2, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useKhet } from '@/hooks/use-khet';
@@ -15,12 +15,32 @@ const ABS_EXERCISES = [
   { exerciseId: 'crunch',             name: 'Crunch' },
   { exerciseId: 'decline-sit-up',     name: 'Decline Sit-Up' },
   { exerciseId: 'leg-raise',          name: 'Leg Raise' },
+  { exerciseId: 'hanging-leg-raise',  name: 'Hanging Leg Raise' },
   { exerciseId: 'hanging-knee-raise', name: 'Hanging Knee Raise' },
   { exerciseId: 'cable-crunch',       name: 'Cable Crunch' },
   { exerciseId: 'russian-twist',      name: 'Russian Twist' },
   { exerciseId: 'ab-wheel-rollout',   name: 'Ab Wheel Rollout' },
   { exerciseId: 'toes-to-bar',        name: 'Toes-to-Bar' },
+  { exerciseId: 'plank',              name: 'Plank' },
+  { exerciseId: 'side-plank',         name: 'Side Plank' },
+  { exerciseId: 'dead-bug',           name: 'Dead Bug' },
 ];
+
+// Trainer checkpoints keyed by exerciseId
+const ABS_CUES: Record<string, string[]> = {
+  'crunch':            ['Cross arms on chest — never pull on your neck.', 'Curl ribcage toward pelvis, not head toward knees.', 'Exhale and squeeze hard at the top; pause one second.', 'Lower with control — no momentum.'],
+  'decline-sit-up':   ['Secure feet; lower slowly — 3 seconds down.', 'Cross arms on chest; avoid pulling the neck.', 'Crunch hard at the top and hold briefly.', 'Add a plate to chest for progressive overload.'],
+  'leg-raise':        ['Press lower back into the floor throughout.', 'Keep legs straight or slightly bent — straight is harder.', 'Raise until vertical, then lower slowly.', 'Stop just before heels touch to maintain tension.'],
+  'hanging-leg-raise':['Dead hang start — eliminate all swing.', 'Posterior tilt your pelvis before lifting.', 'Raise legs to 90° or higher in a controlled arc.', 'Lower slowly — the eccentric is where the work is.'],
+  'hanging-knee-raise':['Dead hang start — eliminate all swing.', 'Drive knees toward chest using abs, not momentum.', 'Round lower back slightly at the top for full contraction.', 'Lower with control over 2 seconds.'],
+  'cable-crunch':     ['Kneel facing cable — rope at forehead, elbows pointing down.', 'Crunch ribs toward hips, not head toward floor.', 'Hold the contracted position for a full second.', 'Let the weight stretch you fully on the way up.'],
+  'russian-twist':    ['Lean back to ~45° — more lean = harder.', 'Keep feet off the floor for max core engagement.', 'Rotate from the torso, not just the arms.', 'Hold a plate or dumbbell for progressive overload.'],
+  'ab-wheel-rollout': ['Start on knees — keep hips from sagging as you roll out.', 'Brace abs hard before rolling; core must not relax.', 'Roll out only as far as you can keep a neutral spine.', 'Pull back with your lats, not momentum.'],
+  'toes-to-bar':      ['Begin with a hollow-body hang — engage lats and brace abs.', 'Drive toes up in a controlled arc, not a kip.', 'Touch bar with toes at the top, then slowly reverse.', 'If form breaks, switch to hanging knee raises to finish.'],
+  'plank':            ['Maintain a rigid line from head to heel — no sagging hips.', 'Brace your abs as if bracing for a punch.', 'Keep glutes squeezed and neck neutral.', 'Breathe steadily — don\'t hold your breath.'],
+  'side-plank':       ['Stack feet or stagger for stability.', 'Drive hip up — don\'t let it sag.', 'Keep body in a straight line from head to heel.', 'Brace the obliques, not just the shoulder.'],
+  'dead-bug':         ['Press lower back flat into the floor — keep it there.', 'Extend opposite arm and leg simultaneously.', 'Move slowly and with full control — speed kills the stimulus.', 'Exhale as you extend; inhale to reset.'],
+};
 
 const BLANK_SET: SetLog = { weight: 0, reps: 0, completed: false };
 
@@ -34,6 +54,7 @@ export function StandaloneAbsPanel({ onClose }: StandaloneAbsPanelProps) {
   const { toast } = useToast();
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [saving, setSaving] = useState(false);
+  const [cuesModal, setCuesModal] = useState<{ name: string; cues: string[] } | null>(null);
 
   const addedIds = new Set(logs.map((l) => l.exerciseId));
   const available = ABS_EXERCISES.filter((e) => !addedIds.has(e.exerciseId));
@@ -138,9 +159,20 @@ export function StandaloneAbsPanel({ onClose }: StandaloneAbsPanelProps) {
           <div key={exIdx} className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-headline text-amber-300">{log.name}</span>
-              <button onClick={() => removeExercise(exIdx)} className="text-zinc-600 hover:text-rose-400 transition-colors">
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {ABS_CUES[log.exerciseId] && (
+                  <button
+                    onClick={() => setCuesModal({ name: log.name, cues: ABS_CUES[log.exerciseId] })}
+                    className="text-zinc-600 hover:text-amber-400 transition-colors"
+                    title="Trainer Checkpoints"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+                )}
+                <button onClick={() => removeExercise(exIdx)} className="text-zinc-600 hover:text-rose-400 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* Column headers */}
@@ -202,6 +234,33 @@ export function StandaloneAbsPanel({ onClose }: StandaloneAbsPanelProps) {
           <p className="text-center text-[10px] text-zinc-600 mt-1.5">Complete at least one set to save.</p>
         )}
       </div>
+
+      {/* Trainer Checkpoints Modal */}
+      {cuesModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6"
+          onClick={() => setCuesModal(null)}
+        >
+          <div
+            className="bg-zinc-950 border border-amber-700/50 rounded-lg p-5 max-w-sm w-full shadow-[0_0_30px_rgba(217,119,6,0.3)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-headline uppercase tracking-widest text-amber-400">Trainer Checkpoints</span>
+              <button onClick={() => setCuesModal(null)} className="text-zinc-500 hover:text-zinc-300 transition-colors">✕</button>
+            </div>
+            <p className="text-sm text-zinc-200 font-medium mb-3">{cuesModal.name}</p>
+            <ul className="space-y-2">
+              {cuesModal.cues.map((cue, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                  <span className="text-amber-500 flex-shrink-0 mt-0.5">▸</span>
+                  <span>{cue}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

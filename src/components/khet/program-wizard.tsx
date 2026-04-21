@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, X, Search, ChevronLeft, ChevronRight, Dumbbell, Link2, GripVertical } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Dumbbell, Link2, GripVertical, Info } from 'lucide-react';
 import { CyberStylus } from '@/components/icons/cyber-stylus';
 import { DuamatefJar } from '@/components/icons/duamatef-jar';
 import {
@@ -32,8 +32,11 @@ import type {
   Exercise,
   WorkoutProgram,
   DeloadStrategy,
+  ProgramGoal,
+  ProgramTimeSlot,
+  ProgramEquipment,
 } from '@/lib/khet-types';
-import { cn } from '@/lib/utils';
+import { cn, localDateStr } from '@/lib/utils';
 import { BanishmentPortal } from '@/components/banishment-portal';
 import { SubstitutionEngine } from './substitution-engine';
 
@@ -62,20 +65,256 @@ function generateDayLabels(split: WorkoutSplit, freq: WorkoutFrequency): string[
   );
 }
 
-// Default exercise templates per day type (exercise IDs)
-const DAY_TEMPLATES: Record<string, string[]> = {
-  Push: ['barbell-bench-press', 'incline-dumbbell-press', 'cable-fly', 'barbell-ohp', 'lateral-raise', 'tricep-pushdown'],
-  Pull: ['barbell-row', 'pull-up', 'cable-row', 'face-pull', 'barbell-curl', 'hammer-curl'],
-  Legs: ['barbell-back-squat', 'romanian-deadlift', 'leg-press', 'leg-curl', 'leg-extension', 'calf-raise'],
-  Upper: ['barbell-bench-press', 'barbell-row', 'barbell-ohp', 'pull-up', 'lateral-raise', 'barbell-curl', 'tricep-pushdown'],
-  Lower: ['barbell-back-squat', 'romanian-deadlift', 'leg-press', 'leg-curl', 'calf-raise'],
-  'Full Body': ['barbell-back-squat', 'barbell-bench-press', 'barbell-row', 'barbell-ohp', 'romanian-deadlift', 'barbell-curl'],
+// ─────────────────────────────────────────────────────────────
+// Hypertrophy Engine — Strategic Periodization Model
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Patterns considered "Push" variants for pattern-overlap prevention.
+ * A-days use "Horizontal Push"; B-days must use "Incline Push" or "Vertical Push".
+ */
+const PUSH_PATTERN_ROTATION: Record<number, string[]> = {
+  0: ['Horizontal Push', 'Incline Push', 'Vertical Push'],
+  1: ['Incline Push', 'Vertical Push'],
 };
 
-function getTemplateForLabel(label: string): string[] {
-  const base = Object.keys(DAY_TEMPLATES).find((k) => label.startsWith(k));
-  return base ? DAY_TEMPLATES[base] : [];
+/** Map day type (base label) to exercise categories/patterns to pull from */
+type DayProfile = {
+  label: string;
+  /** Categories relevant for this day */
+  categories: string[];
+  /** Tier 1 anchor pattern groups to pick from */
+  tier1Patterns: string[];
+};
+
+const DAY_PROFILES: Record<string, DayProfile> = {
+  Push: {
+    label: 'Push',
+    categories: ['Chest', 'Shoulders'],
+    tier1Patterns: ['Horizontal Push', 'Incline Push', 'Vertical Push'],
+  },
+  Pull: {
+    label: 'Pull',
+    categories: ['Back'],
+    tier1Patterns: ['Horizontal Pull', 'Vertical Pull'],
+  },
+  Legs: {
+    label: 'Legs',
+    categories: ['Legs'],
+    tier1Patterns: ['Quad Dominant', 'Hinge/Posterior'],
+  },
+  Upper: {
+    label: 'Upper',
+    categories: ['Chest', 'Back', 'Shoulders'],
+    tier1Patterns: ['Horizontal Push', 'Horizontal Pull', 'Vertical Push'],
+  },
+  Lower: {
+    label: 'Lower',
+    categories: ['Legs'],
+    tier1Patterns: ['Quad Dominant', 'Hinge/Posterior'],
+  },
+  'Full Body': {
+    label: 'Full Body',
+    categories: ['Legs', 'Chest', 'Back', 'Shoulders'],
+    tier1Patterns: ['Quad Dominant', 'Horizontal Push', 'Horizontal Pull'],
+  },
+};
+
+/** Rep ranges per tier — standard hypertrophy science */
+const TIER_REPS: Record<number, string> = {
+  1: '6–8',
+  2: '10–12',
+  3: '15–20',
+};
+
+/** Set counts per tier */
+const TIER_SETS: Record<number, number> = {
+  1: 4,
+  2: 3,
+  3: 3,
+};
+
+/**
+ * Returns goal-adjusted tier ratio for exercise selection.
+ * Returns [tier1Count, tier2Count, tier3Count] per session.
+ */
+function getTierRatio(
+  goal: ProgramGoal,
+  timeSlot: ProgramTimeSlot,
+): [number, number, number] {
+  if (timeSlot === '45m') {
+    // Executive — 5 exercises total, antagonistic supersets implied
+    if (goal === 'Strength') return [2, 2, 1];
+    if (goal === 'Aesthetics') return [1, 2, 2];
+    return [1, 2, 2]; // Conditioning
+  }
+  if (timeSlot === '90m') {
+    // Mass Displacement Special — bonus sets
+    if (goal === 'Strength') return [3, 2, 2];
+    if (goal === 'Aesthetics') return [1, 3, 3];
+    return [1, 2, 4]; // Conditioning
+  }
+  // 60m Standard
+  if (goal === 'Strength') return [2, 2, 2];
+  if (goal === 'Aesthetics') return [1, 2, 3];
+  return [1, 2, 3]; // Conditioning
 }
+
+/** Shuffle helper (Fisher-Yates) */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * Pick exercises for one day using the Hypertrophy Engine.
+ * Implements:
+ * - Tier ordering (Tier 1 anchors first, CNS priority)
+ * - Pattern Overlap prevention on B days
+ * - Unilateral integration every other day
+ * - Goal & time-slot tier ratios
+ * - Ma'at review (avoid stale IDs present in prevIds; use equivalents)
+ */
+function buildDayExercises(
+  dayLabel: string,
+  exercises: Exercise[],
+  goal: ProgramGoal,
+  timeSlot: ProgramTimeSlot,
+  cycleIndex: number,         // 0 = A day, 1 = B day in same split
+  prevIds: Set<string>,        // IDs used in prior program for Ma'at rotation
+  usedThisProgram: Set<string>, // Ids already picked in this program build
+): ProgramExercise[] {
+  const baseLabel = Object.keys(DAY_PROFILES).find((k) => dayLabel.startsWith(k)) ?? 'Full Body';
+  const profile = DAY_PROFILES[baseLabel] ?? DAY_PROFILES['Full Body'];
+  const [t1Count, t2Count, t3Count] = getTierRatio(goal, timeSlot);
+  const result: ProgramExercise[] = [];
+
+  // Exercises excluded from wizard auto-selection (user may add manually)
+  const WIZARD_EXCLUDED_IDS = new Set(['z-press']);
+
+  /** Filter candidates by category + tier, applying Ma'at rotation */
+  function pool(tier: number, patternFilter?: string[]): Exercise[] {
+    return exercises.filter((e) => {
+      if (WIZARD_EXCLUDED_IDS.has(e.id)) return false;
+      if (!profile.categories.includes(e.category)) return false;
+      if (e.tier !== tier) return false;
+      if (patternFilter && patternFilter.length > 0 && !patternFilter.includes(e.pattern ?? '')) return false;
+      return true;
+    });
+  }
+
+  /** Pick one from pool, preferring fresh IDs. If stale, swap to equivalent. */
+  function pick(candidates: Exercise[], forceUnilateral = false): Exercise | null {
+    let filtered = forceUnilateral
+      ? candidates.filter((e) => (e.pattern ?? '').toLowerCase().includes('unilateral'))
+      : candidates;
+    if (filtered.length === 0) filtered = candidates;
+    if (filtered.length === 0) return null;
+
+    // Fresh candidates = not in prevIds (8-week Ma'at rotation)
+    const fresh = filtered.filter((e) => !prevIds.has(e.id) && !usedThisProgram.has(e.id));
+    const stale = filtered.filter((e) => prevIds.has(e.id) && !usedThisProgram.has(e.id));
+    const any = filtered.filter((e) => !usedThisProgram.has(e.id));
+
+    const from = fresh.length > 0 ? fresh : stale.length > 0 ? stale : any;
+    if (from.length === 0) return null;
+
+    const chosen = shuffle(from)[0];
+    usedThisProgram.add(chosen.id);
+    return chosen;
+  }
+
+  /** Convert Exercise to ProgramExercise with tier-based defaults */
+  function toProgEx(e: Exercise): ProgramExercise {
+    const tier = e.tier ?? 2;
+    return {
+      exerciseId: e.id,
+      name: e.name,
+      sets: TIER_SETS[tier] ?? 3,
+      goalReps: TIER_REPS[tier] ?? '10–12',
+    };
+  }
+
+  // ── Tier 1 Anchors ──
+  // B-days of Push: avoid Horizontal Push to prevent pattern overlap
+  let t1PatternFilter: string[] = profile.tier1Patterns;
+  if (baseLabel === 'Push' && cycleIndex > 0) {
+    t1PatternFilter = PUSH_PATTERN_ROTATION[1];
+  }
+
+  const t1Pool = pool(1, t1PatternFilter);
+  for (let i = 0; i < t1Count; i++) {
+    const ex = pick(t1Pool);
+    if (ex) result.push(toProgEx(ex));
+  }
+
+  // ── Tier 2 Structural Sculpt ──
+  const t2Pool = pool(2);
+  for (let i = 0; i < t2Count; i++) {
+    const ex = pick(t2Pool);
+    if (ex) result.push(toProgEx(ex));
+  }
+
+  // ── Tier 3 Detail / Metabolic ──
+  // Ensure at least one unilateral on B days (anti-imbalance protocol)
+  const t3Pool = pool(3);
+  const needsUnilateral = cycleIndex > 0 && !result.some((r) => {
+    const orig = exercises.find((e) => e.id === r.exerciseId);
+    return (orig?.pattern ?? '').toLowerCase().includes('unilateral');
+  });
+
+  for (let i = 0; i < t3Count; i++) {
+    const forceUni = needsUnilateral && i === 0;
+    const ex = pick(t3Pool, forceUni);
+    if (ex) result.push(toProgEx(ex));
+  }
+
+  // ── Arms supplement for Push/Pull/Upper days ──
+  if (['Push', 'Upper'].includes(baseLabel) && result.length < t1Count + t2Count + t3Count) {
+    const tricepPool = exercises.filter((e) => e.primaryMuscles.includes('Triceps') && !usedThisProgram.has(e.id));
+    const ex = pick(tricepPool);
+    if (ex) result.push(toProgEx(ex));
+  }
+  if (['Pull', 'Upper'].includes(baseLabel) && result.length < t1Count + t2Count + t3Count) {
+    const bicepPool = exercises.filter((e) => e.primaryMuscles.includes('Biceps') && !usedThisProgram.has(e.id));
+    const ex = pick(bicepPool);
+    if (ex) result.push(toProgEx(ex));
+  }
+
+  return result;
+}
+
+/**
+ * Build all days for a program using the Hypertrophy Engine.
+ * Implements Volume Wave: Day A = Compound-heavy (T1 first), Day B = Volume/Isolation emphasis.
+ * Also performs Ma'at Legacy Review against prevExerciseIds.
+ */
+function buildAllDays(
+  split: WorkoutSplit,
+  freq: WorkoutFrequency,
+  exercises: Exercise[],
+  goal: ProgramGoal,
+  timeSlot: ProgramTimeSlot,
+  prevExerciseIds: Set<string>,
+): WorkoutDay[] {
+  const labels = generateDayLabels(split, freq);
+  const usedThisProgram = new Set<string>();
+  const cycleIndexMap: Record<string, number> = {};
+
+  return labels.map((label): WorkoutDay => {
+    const baseLabel = Object.keys(DAY_PROFILES).find((k) => label.startsWith(k)) ?? 'Full Body';
+    const ci = cycleIndexMap[baseLabel] ?? 0;
+    cycleIndexMap[baseLabel] = ci + 1;
+
+    const exList = buildDayExercises(label, exercises, goal, timeSlot, ci, prevExerciseIds, usedThisProgram);
+    return { label, exercises: exList };
+  });
+}
+
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -89,7 +328,7 @@ interface ProgramWizardProps {
   editProgram?: WorkoutProgram;
 }
 
-type WizardStep = 'foundation' | 'architect' | 'link';
+type WizardStep = 'discovery' | 'foundation' | 'architect' | 'link';
 
 // ─────────────────────────────────────────────────────────────
 // Component
@@ -97,12 +336,12 @@ type WizardStep = 'foundation' | 'architect' | 'link';
 
 export function ProgramWizard({ open, onClose, onCreated, editProgram }: ProgramWizardProps) {
   const { user } = useAuth();
-  const { addProgram, updateProgram } = useKhet();
+  const { addProgram, updateProgram, programs } = useKhet();
   const { toast } = useToast();
   const { rituals } = useTasks();
   const isEditing = !!editProgram;
 
-  const [step, setStep] = useState<WizardStep>('foundation');
+  const [step, setStep] = useState<WizardStep>('discovery');
   const [name, setName] = useState('');
   const [split, setSplit] = useState<WorkoutSplit>('PPL');
   const [freq, setFreq] = useState<WorkoutFrequency>(4);
@@ -117,6 +356,14 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
   const [durationWeeks, setDurationWeeks] = useState<number>(8);
   const [deloadStrategy, setDeloadStrategy] = useState<DeloadStrategy>('reduce-volume');
   const [approvedDays, setApprovedDays] = useState<Set<number>>(new Set());
+
+  // User Discovery Phase
+  const [goal, setGoal] = useState<ProgramGoal>('Aesthetics');
+  const [timeSlot, setTimeSlot] = useState<ProgramTimeSlot>('60m');
+  const [equipment, setEquipment] = useState<ProgramEquipment>('Full Gym');
+
+  // Cues modal
+  const [cuesModal, setCuesModal] = useState<{ name: string; cues: string[] } | null>(null);
 
   // Drag-to-reorder state
   const dragIdx = useRef<number | null>(null);
@@ -136,30 +383,28 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
     }
   }, [open, editProgram]);
 
-  // Load exercise database once
+  // Load exercise database once — using full_expanded_exercises.json for tier/pattern/cues
   useEffect(() => {
     if (!open) return;
-    fetch('/docs/exercises.json')
+    fetch('/docs/full_expanded_exercises.json')
       .then((r) => r.json())
       .then((data: Exercise[]) => setExercises(data))
       .catch(() => {});
   }, [open]);
 
-  // Build days when split/freq changes on step change
+  // Build days using the Hypertrophy Engine
   const buildDays = useCallback(() => {
-    const labels = generateDayLabels(split, freq);
-    return labels.map((label): WorkoutDay => {
-      const templateIds = getTemplateForLabel(label);
-      const exList = templateIds
-        .map((id): ProgramExercise | null => {
-          const ex = exercises.find((e) => e.id === id);
-          if (!ex) return null;
-          return { exerciseId: ex.id, name: ex.name, sets: 3, goalReps: '8–12' };
-        })
-        .filter(Boolean) as ProgramExercise[];
-      return { label, exercises: exList };
-    });
-  }, [split, freq, exercises]);
+    // Ma'at Legacy Review — collect exercise IDs from the most recent program
+    const sortedPrograms = [...programs].sort((a, b) =>
+      (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+    );
+    const lastProgram = sortedPrograms.find((p) => p.id !== editProgram?.id);
+    const prevIds = new Set<string>(
+      lastProgram?.days.flatMap((d) => d.exercises.map((e) => e.exerciseId)) ?? [],
+    );
+
+    return buildAllDays(split, freq, exercises, goal, timeSlot, prevIds);
+  }, [split, freq, exercises, goal, timeSlot, programs, editProgram]);
 
   const handleGoToArchitect = () => {
     if (!name.trim()) {
@@ -170,6 +415,10 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
     setDays(built);
     setActiveDayIdx(0);
     setStep('architect');
+  };
+
+  const handleGoToFoundation = () => {
+    setStep('foundation');
   };
 
   const updateExercise = (dayIdx: number, exIdx: number, updates: Partial<ProgramExercise>) => {
@@ -209,11 +458,17 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
       } else {
         // Avoid duplicates
         if (next[dayIdx].exercises.some((e) => e.exerciseId === ex.id)) return prev;
+        const tier = ex.tier ?? 2;
         next[dayIdx] = {
           ...next[dayIdx],
           exercises: [
             ...next[dayIdx].exercises,
-            { exerciseId: ex.id, name: ex.name, sets: 3, goalReps: '8–12' },
+            {
+              exerciseId: ex.id,
+              name: ex.name,
+              sets: TIER_SETS[tier] ?? 3,
+              goalReps: TIER_REPS[tier] ?? '10–12',
+            },
           ],
         };
       }
@@ -243,7 +498,7 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
         toast({ title: 'Program Updated', description: `"${name}" saved.` });
         handleClose();
       } else {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localDateStr();
         const programData: Omit<WorkoutProgram, 'id'> = {
           userId: user.uid,
           name: name.trim(),
@@ -277,7 +532,7 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
   };
 
   const handleClose = () => {
-    setStep('foundation');
+    setStep('discovery');
     setName('');
     setSplit('PPL');
     setFreq(4);
@@ -288,6 +543,10 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
     setDeloadStrategy('reduce-volume');
     setApprovedDays(new Set());
     setLinkedRitualId(null);
+    setGoal('Aesthetics');
+    setTimeSlot('60m');
+    setEquipment('Full Gym');
+    setCuesModal(null);
     dragIdx.current = null;
     setDragOver(null);
     onClose();
@@ -310,11 +569,11 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="font-headline text-amber-400 tracking-wider uppercase text-base">
             <Dumbbell className="inline w-4 h-4 mr-2 mb-0.5" />
-            {isEditing ? 'Edit Program' : 'Workout Creation Engine'}
+            {isEditing ? 'Edit Program' : 'Hypertrophy Engine'}
           </DialogTitle>
           {/* Step indicator */}
           <div className="flex items-center gap-1 mt-3">
-            {(['foundation', 'architect', 'link'] as WizardStep[]).map((s, i) => (
+            {(['discovery', 'foundation', 'architect', 'link'] as WizardStep[]).map((s, i) => (
               <div key={s} className="flex items-center gap-1">
                 <div
                   className={cn(
@@ -322,21 +581,131 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
                     step === s ? 'bg-amber-400' : 'bg-zinc-700',
                   )}
                 />
-                {i < 2 && <div className="w-8 h-px bg-zinc-800" />}
+                {i < 3 && <div className="w-6 h-px bg-zinc-800" />}
               </div>
             ))}
             <span className="ml-2 text-[10px] text-zinc-500 uppercase tracking-widest">
-              {step === 'foundation' ? 'Foundation' : step === 'architect' ? 'Review & Edit' : 'Ma\'at Link'}
-            </span>          <DialogDescription className="sr-only">
-            {step === 'foundation'
-              ? 'Configure the program name, split, and frequency.'
-              : step === 'architect'
-              ? 'Add and configure exercises for each training day.'
-              : 'Optionally link this program to a Daily Ritual for Ma\u2019at Sync.'}
-          </DialogDescription>          </div>
+              {step === 'discovery' ? 'Discovery' : step === 'foundation' ? 'Foundation' : step === 'architect' ? 'Review & Edit' : 'Ma\'at Link'}
+            </span>
+            <DialogDescription className="sr-only">
+              {step === 'discovery'
+                ? 'Define your training goal, time, and equipment.'
+                : step === 'foundation'
+                ? 'Configure the program name, split, and frequency.'
+                : step === 'architect'
+                ? 'Add and configure exercises for each training day.'
+                : 'Optionally link this program to a Daily Ritual for Ma\u2019at Sync.'}
+            </DialogDescription>
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {/* ── STEP 0: User Discovery Phase ── */}
+          {step === 'discovery' && (
+            <div className="space-y-6">
+              <p className="text-xs text-zinc-500 uppercase tracking-widest font-headline">
+                Hypertrophy Engine — User Discovery Phase
+              </p>
+
+              {/* Goal */}
+              <div>
+                <label className="text-xs font-headline uppercase tracking-[0.25em] text-zinc-500 block mb-2">
+                  Objective
+                </label>
+                <div className="space-y-2">
+                  {([
+                    { v: 'Aesthetics', desc: 'Mirror muscles, high volume, Tier 2–3 focus' },
+                    { v: 'Strength', desc: 'Anchor lifts, low reps, CNS-first ordering' },
+                    { v: 'Conditioning', desc: 'Metabolic stress, cardio integration, short rest' },
+                  ] as { v: ProgramGoal; desc: string }[]).map(({ v, desc }) => (
+                    <button
+                      key={v}
+                      onClick={() => setGoal(v)}
+                      className={cn(
+                        'w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all',
+                        goal === v
+                          ? 'border-amber-500 bg-amber-950/20 text-amber-300'
+                          : 'border-zinc-800 text-zinc-400 hover:border-zinc-600',
+                      )}
+                    >
+                      <span className="text-sm font-headline uppercase tracking-wider">{v}</span>
+                      <span className="text-[11px] text-zinc-500 text-right max-w-[55%] leading-snug">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Time */}
+              <div>
+                <label className="text-xs font-headline uppercase tracking-[0.25em] text-zinc-500 block mb-2">
+                  Constraint
+                </label>
+                <div className="space-y-2">
+                  {([
+                    { v: '45m', label: '45 Min', desc: 'The Executive — 5 exercises, supersets' },
+                    { v: '60m', label: '60 Min', desc: 'The Standard — 6–7 exercises' },
+                    { v: '90m', label: '90 Min', desc: 'Mass Displacement — bonus Tier 3 finisher' },
+                  ] as { v: ProgramTimeSlot; label: string; desc: string }[]).map(({ v, label, desc }) => (
+                    <button
+                      key={v}
+                      onClick={() => setTimeSlot(v)}
+                      className={cn(
+                        'w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all',
+                        timeSlot === v
+                          ? 'border-cyan-500 bg-cyan-950/20 text-cyan-300'
+                          : 'border-zinc-800 text-zinc-400 hover:border-zinc-600',
+                      )}
+                    >
+                      <span className="text-sm font-headline uppercase tracking-wider">{label}</span>
+                      <span className="text-[11px] text-zinc-500 text-right max-w-[55%] leading-snug">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Equipment */}
+              <div>
+                <label className="text-xs font-headline uppercase tracking-[0.25em] text-zinc-500 block mb-2">
+                  Access
+                </label>
+                <div className="space-y-2">
+                  {([
+                    { v: 'Full Gym', desc: 'Barbells, machines, cables — all available' },
+                    { v: 'Home', desc: 'Bodyweight + limited free weights' },
+                    { v: 'Dumbbells Only', desc: 'Dumbbells and benches' },
+                  ] as { v: ProgramEquipment; desc: string }[]).map(({ v, desc }) => (
+                    <button
+                      key={v}
+                      onClick={() => setEquipment(v)}
+                      className={cn(
+                        'w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all',
+                        equipment === v
+                          ? 'border-green-500 bg-green-950/20 text-green-300'
+                          : 'border-zinc-800 text-zinc-400 hover:border-zinc-600',
+                      )}
+                    >
+                      <span className="text-sm font-headline uppercase tracking-wider">{v}</span>
+                      <span className="text-[11px] text-zinc-500 text-right max-w-[55%] leading-snug">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary pill */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="text-[10px] px-2 py-0.5 rounded-full border border-amber-800 text-amber-400 bg-amber-950/20 font-headline uppercase tracking-widest">
+                  {goal}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full border border-cyan-800 text-cyan-400 bg-cyan-950/20 font-headline uppercase tracking-widest">
+                  {timeSlot}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full border border-green-800 text-green-400 bg-green-950/20 font-headline uppercase tracking-widest">
+                  {equipment}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* ── STEP 1: Foundation ── */}
           {step === 'foundation' && (
             <div className="space-y-4">
@@ -489,10 +858,36 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
                       replacingIdx === exIdx ? 'border-cyan-500/60 bg-cyan-950/10' : '',
                     )}
                   >
-                    {/* Row 1: grip handle + full exercise name */}
+                    {/* Row 1: grip handle + full exercise name + tier badge + cues button */}
                     <div className="flex items-center gap-2">
                       <GripVertical className="w-4 h-4 text-zinc-600 flex-shrink-0" />
-                      <span className="text-base text-zinc-100 font-medium">{ex.name}</span>
+                      <span className="text-base text-zinc-100 font-medium flex-1">{ex.name}</span>
+                      {(() => {
+                        const exData = exercises.find((e) => e.id === ex.exerciseId);
+                        const tier = exData?.tier;
+                        return tier ? (
+                          <span className={cn(
+                            'text-[9px] px-1.5 py-0.5 rounded font-headline uppercase tracking-widest flex-shrink-0',
+                            tier === 1 ? 'border border-amber-700 text-amber-400 bg-amber-950/20' :
+                            tier === 2 ? 'border border-cyan-800 text-cyan-400 bg-cyan-950/20' :
+                            'border border-violet-800 text-violet-400 bg-violet-950/20',
+                          )}>
+                            T{tier}
+                          </span>
+                        ) : null;
+                      })()}
+                      {(() => {
+                        const exData = exercises.find((e) => e.id === ex.exerciseId);
+                        return exData?.cues && exData.cues.length > 0 ? (
+                          <button
+                            onClick={() => setCuesModal({ name: exData.name, cues: exData.cues! })}
+                            className="text-zinc-600 hover:text-amber-400 transition-colors flex-shrink-0"
+                            title="Trainer Checkpoints"
+                          >
+                            <Info className="w-4 h-4" />
+                          </button>
+                        ) : null;
+                      })()}
                     </div>
                     {/* Row 2: Sets | Reps | Edit | Delete */}
                     <div className="flex items-center gap-2 ml-6">
@@ -610,7 +1005,15 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
                       className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center justify-between"
                     >
                       <span>{ex.name}</span>
-                      <span className="text-[10px] text-zinc-600">{ex.category}</span>
+                      <span className="flex items-center gap-2 flex-shrink-0">
+                        {ex.tier && (
+                          <span className={cn(
+                            'text-[9px] px-1 py-0.5 rounded font-headline uppercase tracking-widest',
+                            ex.tier === 1 ? 'text-amber-400' : ex.tier === 2 ? 'text-cyan-400' : 'text-violet-400',
+                          )}>T{ex.tier}</span>
+                        )}
+                        <span className="text-[10px] text-zinc-600">{ex.category}</span>
+                      </span>
                     </button>
                   ))}
                   {filteredExercises.length === 0 && (
@@ -662,14 +1065,26 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
         <div className="px-6 pb-6 pt-3 border-t border-zinc-800 flex items-center justify-between gap-3">
           <Button
             variant="ghost"
-            onClick={step === 'foundation' ? handleClose : () => { setStep(step === 'architect' ? 'foundation' : 'architect'); setApprovedDays(new Set()); }}
+            onClick={step === 'discovery' ? handleClose : () => {
+              if (step === 'link') { setStep('architect'); setApprovedDays(new Set()); }
+              else if (step === 'architect') { setStep('foundation'); setApprovedDays(new Set()); }
+              else if (step === 'foundation') setStep('discovery');
+            }}
             className="border-2 border-zinc-400 text-zinc-200 font-headline uppercase tracking-widest text-sm shadow-[0_0_12px_rgba(161,161,170,0.6)] hover:shadow-[0_0_20px_rgba(161,161,170,0.9)] hover:text-white hover:border-zinc-200 transition-all"
           >
-            {step === 'foundation' ? 'Escape' : (
+            {step === 'discovery' ? 'Escape' : (
               <><ChevronLeft className="w-4 h-4 mr-1" /> Back</>
             )}
           </Button>
 
+          {step === 'discovery' && (
+            <Button
+              onClick={() => setStep('foundation')}
+              className="bg-transparent border-2 border-amber-400 text-amber-300 font-headline uppercase tracking-widest text-base font-bold hover:bg-amber-950/30 hover:text-amber-200 hover:border-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.7)] hover:shadow-[0_0_28px_rgba(251,191,36,1)] animate-pulse transition-all"
+            >
+              PROCEED <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          )}
           {step === 'foundation' && (
             <Button
               onClick={handleGoToArchitect}
@@ -700,6 +1115,35 @@ export function ProgramWizard({ open, onClose, onCreated, editProgram }: Program
             </Button>
           )}
         </div>
+
+        {/* Cues Modal — Trainer Checkpoints */}
+        {cuesModal && (
+          <div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6"
+            onClick={() => setCuesModal(null)}
+          >
+            <div
+              className="bg-zinc-950 border border-amber-700/50 rounded-lg p-5 max-w-sm w-full shadow-[0_0_30px_rgba(217,119,6,0.3)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-headline uppercase tracking-widest text-amber-400">
+                  Trainer Checkpoints
+                </span>
+                <button onClick={() => setCuesModal(null)} className="text-zinc-500 hover:text-zinc-300">✕</button>
+              </div>
+              <p className="text-sm text-zinc-200 font-medium mb-3">{cuesModal.name}</p>
+              <ul className="space-y-2">
+                {cuesModal.cues.map((cue, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                    <span className="text-amber-500 flex-shrink-0 mt-0.5">▸</span>
+                    <span>{cue}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         {/* Substitution Engine — nested inside DialogContent so closing it doesn't dismiss the wizard */}
         {swapTarget !== null && swapEx && (

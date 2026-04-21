@@ -7,7 +7,7 @@ import {
   Dumbbell, CheckCircle2, Weight, Pencil, Trash2, Plus, Calendar,
 } from 'lucide-react';
 import { useKhet } from '@/hooks/use-khet';
-import { cn } from '@/lib/utils';
+import { cn, localDateStr } from '@/lib/utils';
 import type { GlobalStats, FoundationalPR, KhetUserSettings, WeekStats } from '@/lib/khet-types';
 import { FOUNDATIONAL_MOVEMENTS } from '@/lib/khet-types';
 import type { WeightUnit } from '@/lib/khet-types';
@@ -157,7 +157,7 @@ function ManualPRForm({ initial, onSave, onDelete, onClose }: ManualPRFormProps)
   const [movement, setMovement] = useState(initial?.movement ?? FOUNDATIONAL_MOVEMENTS[0].movement);
   const [weight, setWeight]   = useState(initial?.isManual && initial.bestWeight ? String(initial.bestWeight) : '');
   const [reps, setReps]       = useState(initial?.isManual && initial.bestReps ? String(initial.bestReps) : '');
-  const [date, setDate]       = useState(initial?.isManual && initial.bestDate ? initial.bestDate : new Date().toISOString().slice(0, 10));
+  const [date, setDate]       = useState(initial?.isManual && initial.bestDate ? initial.bestDate : localDateStr());
   const [notes, setNotes]     = useState(initial?.manualNotes ?? '');
   const [saving, setSaving]   = useState(false);
   const [deleting, setDeleting] = useState(false);

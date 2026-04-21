@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeftRight, Plus, Minus, ChevronDown, ChevronUp, Snowflake } from 'lucide-react';
+import { ArrowLeftRight, Plus, Minus, ChevronDown, ChevronUp, Snowflake, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,6 +19,7 @@ interface ExerciseRowProps {
   ghostSessions: WorkoutSession[];
   isDeloading?: boolean;
   deloadStrategy?: DeloadStrategy;
+  cues?: string[];
 }
 
 export function ExerciseRow({
@@ -27,12 +28,14 @@ export function ExerciseRow({
   ghostSessions,
   isDeloading = false,
   deloadStrategy = 'reduce-volume',
+  cues,
 }: ExerciseRowProps) {
   const { state, dispatch } = useKhetSession();
   const { weightUnit } = useKhet();
   const log = state.exerciseLogs[exerciseIdx];
   const [notesOpen, setNotesOpen] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
+  const [cuesOpen, setCuesOpen] = useState(false);
 
   const allSetsComplete =
     log.sets.length > 0 && log.sets.every((s) => s.completed);
@@ -105,7 +108,7 @@ export function ExerciseRow({
       )}
       {/* ── Header ── */}
       <div className="mb-3">
-        {/* Row 1: Exercise name + notes toggle */}
+        {/* Row 1: Exercise name + cues button + notes toggle */}
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className="flex-1 min-w-0">
             <h4 className="text-sm font-headline text-cyan-300 leading-snug">{log.name}</h4>
@@ -118,6 +121,15 @@ export function ExerciseRow({
               </div>
             )}
           </div>
+          {cues && cues.length > 0 && (
+            <button
+              onClick={() => setCuesOpen(true)}
+              className="text-zinc-600 hover:text-amber-400 transition-colors flex-shrink-0 mt-0.5"
+              title="Trainer Checkpoints"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -308,6 +320,40 @@ export function ExerciseRow({
           setSwapOpen(false);
         }}
       />
+
+      {/* ── Trainer Checkpoints Modal ── */}
+      {cuesOpen && cues && cues.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6"
+          onClick={() => setCuesOpen(false)}
+        >
+          <div
+            className="bg-zinc-950 border border-amber-700/50 rounded-lg p-5 max-w-sm w-full shadow-[0_0_30px_rgba(217,119,6,0.3)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-headline uppercase tracking-widest text-amber-400">
+                Trainer Checkpoints
+              </span>
+              <button
+                onClick={() => setCuesOpen(false)}
+                className="text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-zinc-200 font-medium mb-3">{log.name}</p>
+            <ul className="space-y-2">
+              {cues.map((cue, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                  <span className="text-amber-500 flex-shrink-0 mt-0.5">▸</span>
+                  <span>{cue}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

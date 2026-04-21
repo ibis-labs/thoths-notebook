@@ -23,8 +23,8 @@ import { GhostLogPanel } from '@/components/khet/ghost-log';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Sidebar, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
-import type { WorkoutSession, WorkoutProgram } from '@/lib/khet-types';
-import { cn } from '@/lib/utils';
+import type { WorkoutSession, WorkoutProgram, Exercise } from '@/lib/khet-types';
+import { cn, localDateStr } from '@/lib/utils';
 import Link from 'next/link';
 
 // ─────────────────────────────────────────────────────────────
@@ -134,6 +134,15 @@ function SessionInner({ program, dayIndex, ghostSessions, ghostLoading }: Sessio
   const router = useRouter();
   const [completing, setCompleting] = useState(false);
   const [ghostOpen, setGhostOpen] = useState(false);
+  const [exerciseDb, setExerciseDb] = useState<Exercise[]>([]);
+
+  // Load exercise database for cues lookup
+  useEffect(() => {
+    fetch('/docs/full_expanded_exercises.json')
+      .then((r) => r.json())
+      .then((data: Exercise[]) => setExerciseDb(data))
+      .catch(() => {});
+  }, []);
 
   const day = program.days[dayIndex];
   const today = format(new Date(), 'EEEE, MMMM d · yyyy');
@@ -148,7 +157,7 @@ function SessionInner({ program, dayIndex, ghostSessions, ghostLoading }: Sessio
         programName: program.name,
         dayIndex,
         dayLabel: day.label,
-        date: new Date().toISOString().slice(0, 10),
+        date: localDateStr(),
         exerciseLogs: state.exerciseLogs,
         cardioLog: state.cardioEnabled ? state.cardioLog : undefined,
         absLogs: state.absEnabled && state.absLogs.length > 0 ? state.absLogs : undefined,
@@ -164,7 +173,7 @@ function SessionInner({ program, dayIndex, ghostSessions, ghostLoading }: Sessio
       await completeSessionAndSync(sessionData);
 
       // If this session completes the final day of a deload week, show the recharge message
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateStr();
       const isLastDeloadSession =
         program.isDeloading &&
         program.lastDeloadEnd &&
@@ -273,6 +282,7 @@ function SessionInner({ program, dayIndex, ghostSessions, ghostLoading }: Sessio
             ghostSessions={ghostSessions}
             isDeloading={!!program.isDeloading}
             deloadStrategy={program.deloadStrategy}
+            cues={exerciseDb.find((e) => e.id === programEx.exerciseId)?.cues}
           />
         ))}
       </div>

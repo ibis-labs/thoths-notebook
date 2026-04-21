@@ -41,7 +41,7 @@ import { WorkoutDiary } from './workout-diary';
 import { StandaloneCardioPanel } from './standalone-cardio-panel';
 import { StandaloneAbsPanel } from './standalone-abs-panel';
 import type { WorkoutProgram, DeloadStrategy } from '@/lib/khet-types';
-import { cn } from '@/lib/utils';
+import { cn, localDateStr } from '@/lib/utils';
 
 export function KhetDashboard() {
   const { programs, loading, deleteProgram } = useKhet();
@@ -240,10 +240,15 @@ function ProgramCard({ program, onEdit, onDelete }: ProgramCardProps) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const lastDone = program.lastSessionDayIndex ?? -1;
   const doneToday = program.lastSessionDate === todayStr;
-  // next in rotation (wraps; 0 if no sessions yet)
-  const nextIdx = lastDone === -1 ? 0 : (lastDone + 1) % (program.days?.length || 1);
-  // user finished the last day today → all green, rest until tomorrow
-  const allDoneToday = doneToday && lastDone === (program.days?.length ?? 0) - 1;
+  const totalDays = program.days?.length ?? 0;
+  // Every day 0..lastDone has been completed in the current cycle
+  const allCycleDone = totalDays > 0 && lastDone === totalDays - 1;
+  // Completed the final day TODAY → all glow green until midnight
+  const allDoneToday = allCycleDone && doneToday;
+  // Completed the final day on a PREVIOUS day → new cycle begins, reset to day 0
+  const cycleReset = allCycleDone && !doneToday;
+  // Next day in rotation
+  const nextIdx = (lastDone === -1 || cycleReset) ? 0 : (lastDone + 1) % (totalDays || 1);
 
   const deloadLabel: Record<DeloadStrategy, string> = {
     'reduce-volume': 'Reduce Volume (Best)',
@@ -253,7 +258,7 @@ function ProgramCard({ program, onEdit, onDelete }: ProgramCardProps) {
   };
 
   const handleStartDeload = async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 7);
     try {
@@ -261,7 +266,7 @@ function ProgramCard({ program, onEdit, onDelete }: ProgramCardProps) {
         isDeloading: true,
         deloadStrategy: confirmDeloadStrategy,
         lastDeloadStart: today,
-        lastDeloadEnd: endDate.toISOString().slice(0, 10),
+        lastDeloadEnd: localDateStr(endDate),
       });
       toast({ title: 'Deload Week Started', description: `${deloadLabel[confirmDeloadStrategy]} — ends ${format(endDate, 'MMM d')}.` });
     } catch {
@@ -490,7 +495,8 @@ function ProgramCard({ program, onEdit, onDelete }: ProgramCardProps) {
       </p>
       <div className="flex flex-wrap gap-1">
         {(program.days ?? []).map((day, idx) => {
-          const isCompletedToday = doneToday && (allDoneToday || idx === lastDone);
+          // Green if completed in current cycle (indices 0..lastDone), clears on cycle reset
+          const isCompletedInCycle = !cycleReset && lastDone >= 0 && idx <= lastDone;
           const isNextUp = !allDoneToday && idx === nextIdx;
           return (
             <Link
@@ -498,7 +504,7 @@ function ProgramCard({ program, onEdit, onDelete }: ProgramCardProps) {
               href={`/khet/session/${program.id}/${idx}`}
               className={cn(
                 'group flex items-center justify-center px-3 py-2 rounded border text-xs font-headline uppercase tracking-wider transition-all duration-200 whitespace-nowrap',
-                isCompletedToday
+                isCompletedInCycle
                   ? 'border-green-500/60 text-green-300 bg-green-950/20 shadow-[0_0_8px_rgba(74,222,128,0.2)]'
                   : isNextUp
                   ? 'border-orange-400 text-orange-300 bg-orange-950/20 shadow-[0_0_12px_rgba(251,146,60,0.5)] [animation:pulse_4s_ease-in-out_infinite]'

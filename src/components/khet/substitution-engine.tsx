@@ -36,7 +36,7 @@ export function SubstitutionEngine({
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    fetch('/docs/exercises.json')
+    fetch('/docs/full_expanded_exercises.json')
       .then((r) => r.json())
       .then((data: Exercise[]) => {
         setExercises(data);
@@ -66,11 +66,13 @@ export function SubstitutionEngine({
   const filteredOthers = filterEx(allOthers);
 
   const handleSelect = (ex: Exercise) => {
+    const tier = ex.tier ?? 2;
+    const goalReps = tier === 1 ? '6–8' : tier === 3 ? '15–20' : '10–12';
     onSwap({
       exerciseId: ex.id,
       name: ex.name,
-      sets: 3,
-      goalReps: '8–12',
+      sets: tier === 1 ? 4 : 3,
+      goalReps,
     });
   };
 
@@ -176,6 +178,14 @@ function ExerciseOption({ exercise, onSelect, highlight }: ExerciseOptionProps) 
         <span className="text-xs text-zinc-400">
           {exercise.primaryMuscles.slice(0, 3).join(' · ')}
         </span>
+        {exercise.tier && (
+          <span className={cn(
+            'text-[9px] px-1.5 py-0 rounded font-headline uppercase tracking-widest',
+            exercise.tier === 1 ? 'text-amber-400' : exercise.tier === 2 ? 'text-cyan-400' : 'text-violet-400',
+          )}>
+            T{exercise.tier}
+          </span>
+        )}
         {exercise.equipment.slice(0, 2).map((eq) => (
           <span
             key={eq}
