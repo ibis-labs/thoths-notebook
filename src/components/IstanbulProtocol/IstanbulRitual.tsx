@@ -6,6 +6,7 @@ import { Obelisk } from '@/components/IstanbulProtocol/Obelisk';
 import { HeroGlyphs } from '@/components/IstanbulProtocol/HeroGlyphs';
 import { VariousGlyphs } from '@/components/IstanbulProtocol/VariousGlyphs';
 import { Pedestal } from '@/components/IstanbulProtocol/Pedestal';
+import { NedjemBastet } from '@/components/IstanbulProtocol/NedjemBastet';
 import { Keypad } from '@/components/IstanbulProtocol/Keypad';
 import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
@@ -272,6 +273,9 @@ export default function IstanbulRitual({ onRitualComplete }: { onRitualComplete?
                     </g>
                     <g transform="translate(0.5, 6.0)">
                         <Pedestal ritualStage={2} />
+                        <g transform="translate(-0.85, -11.05)">
+                            <NedjemBastet ritualStage={2} color="#00FFFF" />
+                        </g>
                         <motion.rect x="22.1" y="254" width="10" height="15" rx="1" fill="none" stroke="#00ff41" strokeWidth="0.2" animate={{ opacity: knockCount * 0.33 }} />
                         <g transform="translate(22.1, 254)">
                             <motion.g animate={isError ? { x: [0, -0.4, 0.4, 0], filter: ["drop-shadow(0 0 5px #ff0000)", "drop-shadow(0 0 0px #ff0000)"] } : {}}>
